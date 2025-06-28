@@ -188,7 +188,6 @@ let isPickaxe = false;
 let isRemove = false;
 let isWheat = false;
 let isSickle = false;
-let isMouseDown = false;
 let plots = [];
 let wheats = [];
 let handledCoords = new Set();
@@ -526,14 +525,21 @@ function removePlot(x, y, mousePos = null) {
   return false;
 }
 
-function handleActionAtMouse(e) {
+// ---- MODERN POINTER EVENTS BAŞLANGIÇ ---- //
+
+let isPointerDown = false;
+
+function handlePointerEvent(e) {
   let clientX, clientY;
   if (e.touches && e.touches.length > 0) {
     clientX = e.touches[0].clientX;
     clientY = e.touches[0].clientY;
-  } else {
+  } else if (typeof e.clientX === "number" && typeof e.clientY === "number") {
     clientX = e.clientX; clientY = e.clientY;
+  } else if (typeof e.pageX === "number" && typeof e.pageY === "number") {
+    clientX = e.pageX; clientY = e.pageY;
   }
+  if (clientX === undefined || clientY === undefined) return;
   const { x, y } = screenToIso(clientX, clientY);
   const key = `${x},${y}`;
   if (handledCoords.has(key)) return;
@@ -545,55 +551,24 @@ function handleActionAtMouse(e) {
   if (isSickle) harvestWheat(x, y);
 }
 
-/* 
-  -- Mouse ve dokunma olaylarını birlikte ve çakışmasız çalıştıran çözüm --
-  Bilgisayarda mouse, telefonda dokunmatik, hibrit cihazda her ikisi birlikte çalışır.
-*/
-
-let lastTouch = 0;
-
-gameArea.addEventListener('mousedown', (e) => {
-  // Sadece dokunmatik hareketten hemen sonra mouse olayı gelirse atla (çift tetiklemeyi engelle)
-  if (Date.now() - lastTouch < 500) return;
+gameArea.addEventListener('pointerdown', (e) => {
   if (isPickaxe || isRemove || isWheat || isSickle) {
-    isMouseDown = true;
+    isPointerDown = true;
     handledCoords.clear();
-    handleActionAtMouse(e);
-  }
-});
-gameArea.addEventListener('mousemove', (e) => {
-  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
-    if (Date.now() - lastTouch < 500) return;
-    handleActionAtMouse(e);
-  }
-});
-document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
-gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
-
-gameArea.addEventListener('touchstart', (e) => {
-  lastTouch = Date.now();
-  if (isPickaxe || isRemove || isWheat || isSickle) {
-    isMouseDown = true;
-    handledCoords.clear();
-    handleActionAtMouse(e);
+    handlePointerEvent(e);
     e.preventDefault();
   }
-}, { passive: false });
-
-gameArea.addEventListener('touchmove', (e) => {
-  lastTouch = Date.now();
-  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
-    handleActionAtMouse(e);
+});
+gameArea.addEventListener('pointermove', (e) => {
+  if (isPointerDown && (isPickaxe || isRemove || isWheat || isSickle)) {
+    handlePointerEvent(e);
     e.preventDefault();
   }
-}, { passive: false });
+});
+gameArea.addEventListener('pointerup', () => { isPointerDown = false; handledCoords.clear(); });
+gameArea.addEventListener('pointerleave', () => { isPointerDown = false; handledCoords.clear(); });
 
-gameArea.addEventListener('touchend', (e) => {
-  lastTouch = Date.now();
-  isMouseDown = false;
-  handledCoords.clear();
-  e.preventDefault();
-}, { passive: false });
+// ---- MODERN POINTER EVENTS SON ---- //
 
 function redrawAllPlots() {
   document.querySelectorAll('.iso-plot').forEach(el => el.remove());
