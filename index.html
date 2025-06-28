@@ -103,7 +103,6 @@
       width: 100vw; height: 100vh;
       cursor: default; user-select: none; z-index: 2;
       touch-action: none;
-      /* Merkeze sabitle */
       display: block;
     }
     .iso-plot {
@@ -134,19 +133,40 @@
     }
     .money-gain { color: #11c90e; text-shadow: 0 1px 4px #fff8,0 0 2px #45ff42; }
     .money-lose { color: #d62424; text-shadow: 0 1px 4px #fff8,0 0 2px #ff6961; }
-    [id^="timer-"] {
-      width: 13vw !important;
-      height: 6vw !important;
-      font-size: 4vw !important;
-      border-radius: 1vw !important;
-      line-height: 6vw !important;
-      left: calc(50% - 7vw) !important;
-      top: -23px !important;
-      background: rgba(255,255,255,0.85);
-      color: #000;
+    .plot-timer {
       position: absolute;
-      pointer-events: none;
+      left: 50%; top: -38px; /* tam üstünde, biraz yukarı */
+      transform: translateX(-50%);
+      min-width: 40px;
+      min-height: 30px;
+      background: rgba(255,255,255,0.94);
+      color: #252;
+      border-radius: 16px;
+      font-size: 2.1rem;
+      font-weight: bold;
       text-align: center;
+      padding: 2px 16px;
+      box-shadow: 0 1px 8px #0001;
+      z-index: 4;
+      letter-spacing: 1px;
+      pointer-events: none;
+      transition: background 0.2s, color 0.2s, scale 0.2s;
+      border: 2px solid #b5ffc3;
+      opacity: 1;
+      will-change: opacity, scale;
+    }
+    .plot-timer.ready {
+      background: #baffc9;
+      color: #09980a;
+      border: 2px solid #21cd3f;
+      animation: timer-check-anim 0.4s cubic-bezier(.61,-0.1,.57,1.5) 1;
+      font-size: 2.5rem;
+      scale: 1.12;
+    }
+    @keyframes timer-check-anim {
+      from { scale:0.7; opacity:0; }
+      80% { scale:1.15; opacity:1;}
+      to { scale:1.12; opacity:1;}
     }
     ::-webkit-scrollbar { display: none; }
     body, #game-area, #toolbar { -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -180,7 +200,7 @@
     <div id="game-area"></div>
   </div>
   <div class="status-bars">
-    <div id="money-bar">🪙 <span id="money-amount">1000</span></div>
+    <div id="money-bar"><span style="font-size: 1.2em;">💰</span> <span id="money-amount">1000</span></div>
     <div id="wheat-price-bar" title="Elindeki fazla buğdayı sat">
       <img id="wheat-price-icon" src="img/wheat.webp" alt="Buğday">
       <span id="wheat-price-amount">10</span>
@@ -291,7 +311,7 @@ function screenToGame(x, y) {
 }
 function isoToScreen(x, y) {
   const centerX = VIRTUAL_W / 2;
-  const centerY = 350; // Alanın ortasına yasla
+  const centerY = 350;
   return {
     left: centerX + (x - y) * (tileW / 2),
     top: centerY + (x + y) * (tileH / 2)
@@ -358,7 +378,7 @@ wheatPriceBar.addEventListener('click', () => {
   }, 450);
 });
 function animateMoneyFloat({amount, from, to}) {
-  const emoji = '🪙';
+  const emoji = '💰';
   const sign = amount > 0 ? '+' : '';
   const colorClass = amount > 0 ? 'money-gain' : 'money-lose';
   const float = document.createElement('span');
@@ -471,6 +491,7 @@ function addWheat(x, y) {
   if (!plotImg) return false;
   const now = Date.now();
   let timerDiv = document.createElement('div');
+  timerDiv.className = "plot-timer";
   timerDiv.id = `timer-${x}-${y}`;
   let wheatObj = {
     x, y,
@@ -493,21 +514,20 @@ function addWheat(x, y) {
     }
     if (remain > 0) {
       timerDiv.textContent = remain;
-      timerDiv.style.background = "rgba(255,255,255,0.85)";
-      timerDiv.style.color = "#000";
+      timerDiv.classList.remove('ready');
     } else {
       timerDiv.textContent = "✔";
-      timerDiv.style.background = "#baffc9";
-      timerDiv.style.color = "#09980a";
+      timerDiv.classList.add('ready');
       wheatObj.ready = true;
       clearInterval(wheatObj.timerInterval);
     }
   }
   updateTimer();
   wheatObj.timerInterval = setInterval(updateTimer, 400);
-  timerDiv.style.position = "absolute";
+
+  // timerDiv'i tam ortada, biraz üstte göster
   timerDiv.style.left = "50%";
-  timerDiv.style.top = "-23px";
+  timerDiv.style.top = "-38px";
   timerDiv.style.transform = "translateX(-50%)";
   plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
   wheats.push(wheatObj);
@@ -599,7 +619,7 @@ document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
 function redrawAllPlots() {
   document.querySelectorAll('.iso-plot').forEach(el => el.remove());
-  document.querySelectorAll('[id^="timer-"]').forEach(el => el.remove());
+  document.querySelectorAll('.plot-timer').forEach(el => el.remove());
   plots.forEach(({x, y}) => {
     const coords = isoToScreen(x, y);
     const img = document.createElement('img');
@@ -628,21 +648,17 @@ function redrawAllPlots() {
     }
 
     let timerDiv = document.createElement('div');
+    timerDiv.className = "plot-timer" + (remain === 0 ? " ready" : "");
     timerDiv.id = `timer-${w.x}-${w.y}`;
+    timerDiv.style.left = "50%";
+    timerDiv.style.top = "-38px";
+    timerDiv.style.transform = "translateX(-50%)";
     if (remain > 0) {
       timerDiv.textContent = remain;
-      timerDiv.style.background = "rgba(255,255,255,0.85)";
-      timerDiv.style.color = "#000";
     } else {
       timerDiv.textContent = "✔";
-      timerDiv.style.background = "#baffc9";
-      timerDiv.style.color = "#09980a";
       w.ready = true;
     }
-    timerDiv.style.position = "absolute";
-    timerDiv.style.left = "50%";
-    timerDiv.style.top = "-23px";
-    timerDiv.style.transform = "translateX(-50%)";
     plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
     w.timerEl = timerDiv;
   });
