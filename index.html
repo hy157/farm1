@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Dikey Izometrik</title>
+  <title>Tarım Oyunu - Büyük Tarlalar</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
     html, body {
@@ -107,12 +107,13 @@
     }
     .iso-plot {
       position: absolute;
-      width: 128px;
-      height: 84px;
+      width: 384px;
+      height: 252px;
       transform: translate(-50%, -50%);
       pointer-events: none;
       transition: filter 0.1s;
       will-change: transform, filter, opacity;
+      z-index: 2;
     }
     .fall-anim { animation: fall-in 0.4s cubic-bezier(.55,1.5,.58,1) both; }
     @keyframes fall-in {
@@ -135,38 +136,36 @@
     .money-lose { color: #d62424; text-shadow: 0 1px 4px #fff8,0 0 2px #ff6961; }
     .plot-timer {
       position: absolute;
-      left: 50%; top: -38px; /* tam üstünde, biraz yukarı */
-      transform: translateX(-50%);
-      min-width: 40px;
-      min-height: 30px;
-      background: rgba(255,255,255,0.94);
+      left: 50%; top: 50%; transform: translate(-50%, -50%);
+      min-width: 90px; min-height: 70px;
+      background: rgba(255,255,255,0.64);
       color: #252;
-      border-radius: 16px;
-      font-size: 2.1rem;
+      border-radius: 2vw;
+      font-size: 4.8rem;
       font-weight: bold;
       text-align: center;
-      padding: 2px 16px;
-      box-shadow: 0 1px 8px #0001;
+      padding: 10px 32px;
+      box-shadow: 0 1px 18px #0002;
       z-index: 4;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       pointer-events: none;
-      transition: background 0.2s, color 0.2s, scale 0.2s;
-      border: 2px solid #b5ffc3;
+      border: 2.5px solid #b5ffc3;
       opacity: 1;
       will-change: opacity, scale;
+      transition: background 0.2s, color 0.2s, scale 0.2s;
     }
     .plot-timer.ready {
-      background: #baffc9;
+      background: #baffc9e0;
       color: #09980a;
-      border: 2px solid #21cd3f;
+      border: 2.5px solid #21cd3f;
       animation: timer-check-anim 0.4s cubic-bezier(.61,-0.1,.57,1.5) 1;
-      font-size: 2.5rem;
-      scale: 1.12;
+      font-size: 5.5rem;
+      scale: 1.10;
     }
     @keyframes timer-check-anim {
       from { scale:0.7; opacity:0; }
       80% { scale:1.15; opacity:1;}
-      to { scale:1.12; opacity:1;}
+      to { scale:1.10; opacity:1;}
     }
     ::-webkit-scrollbar { display: none; }
     body, #game-area, #toolbar { -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -223,9 +222,11 @@
     <small>(Oyun sadece dikey oynanır)</small>
   </div>
 <script>
-const VIRTUAL_W = 800, VIRTUAL_H = 1200; // Dikey izometrik büyük alan
+const VIRTUAL_W = 800, VIRTUAL_H = 1200; // Oyun alanı
 let scale = 1, offsetLeft = 0, offsetTop = 0;
-const tileW = 128, tileH = 84;
+// === TARLA 3 KAT DAHA BÜYÜK ===
+const tileW = 128*3, tileH = 84*3; // 384x252px
+
 const plotImgSrc = "img/Plot.webp";
 const plot1ImgSrc = "img/Plot1.webp";
 const plot2ImgSrc = "img/Plot2.webp";
@@ -525,10 +526,10 @@ function addWheat(x, y) {
   updateTimer();
   wheatObj.timerInterval = setInterval(updateTimer, 400);
 
-  // timerDiv'i tam ortada, biraz üstte göster
+  // timerDiv tam ortada, büyük ve yarı saydam
   timerDiv.style.left = "50%";
-  timerDiv.style.top = "-38px";
-  timerDiv.style.transform = "translateX(-50%)";
+  timerDiv.style.top = "50%";
+  timerDiv.style.transform = "translate(-50%, -50%)";
   plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
   wheats.push(wheatObj);
   return true;
@@ -651,8 +652,8 @@ function redrawAllPlots() {
     timerDiv.className = "plot-timer" + (remain === 0 ? " ready" : "");
     timerDiv.id = `timer-${w.x}-${w.y}`;
     timerDiv.style.left = "50%";
-    timerDiv.style.top = "-38px";
-    timerDiv.style.transform = "translateX(-50%)";
+    timerDiv.style.top = "50%";
+    timerDiv.style.transform = "translate(-50%, -50%)";
     if (remain > 0) {
       timerDiv.textContent = remain;
     } else {
