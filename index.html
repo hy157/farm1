@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Sadece Dikey</title>
+  <title>Tarım Oyunu - Dikey Izometrik</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
     html, body {
@@ -100,36 +100,32 @@
     }
     #game-area {
       position: absolute; left: 0; top: 0;
-      width: 420px; /* Dikey oynanış için genişlik kısıtlı */
-      height: 90vh;
+      width: 100vw; height: 100vh;
       cursor: default; user-select: none; z-index: 2;
       touch-action: none;
-      right: 0; margin: auto; left: 0;
-      display: flex; flex-direction: column; align-items: center; /* Merkezde dikey */
-      /* Alt sınırı toolbar ile çakışmasın */
-      margin-bottom: 14vw;
+      /* Merkeze sabitle */
+      display: block;
     }
     .iso-plot {
       position: absolute;
-      width: 140px;
-      height: 100px;
-      left: 50%; /* Merkezde */
-      transform: translateX(-50%);
+      width: 128px;
+      height: 84px;
+      transform: translate(-50%, -50%);
       pointer-events: none;
       transition: filter 0.1s;
       will-change: transform, filter, opacity;
     }
     .fall-anim { animation: fall-in 0.4s cubic-bezier(.55,1.5,.58,1) both; }
     @keyframes fall-in {
-      from { opacity: 0; transform: translateX(-50%) translateY(-60%) scaleY(1.2); filter: blur(2px);}
-      80% { opacity: 1; transform: translateX(-50%) translateY(-16%) scaleY(0.95); filter: blur(0);}
-      to { opacity: 1; transform: translateX(-50%) translateY(0%) scaleY(1); filter: blur(0);}
+      from { opacity: 0; transform: translate(-50%, -130%) scaleY(1.2); filter: blur(2px);}
+      80% { opacity: 1; transform: translate(-50%, -56%) scaleY(0.95); filter: blur(0);}
+      to { opacity: 1; transform: translate(-50%, -50%) scaleY(1); filter: blur(0);}
     }
     .fly-anim { animation: fly-out 0.4s cubic-bezier(.7,-0.4,1,.57) both; z-index: 10; }
     @keyframes fly-out {
-      from { opacity: 1; transform: translateX(-50%) translateY(0%) scaleY(1); filter: blur(0);}
-      40% { opacity: 1; filter: blur(0.5px); transform: translateX(-50%) translateY(-20%) scaleY(1.05);}
-      to { opacity: 0; filter: blur(2px); transform: translateX(-50%) translateY(-60%) scaleY(1.2);}
+      from { opacity: 1; transform: translate(-50%, -50%) scaleY(1); filter: blur(0);}
+      40% { opacity: 1; filter: blur(0.5px); transform: translate(-50%, -70%) scaleY(1.05);}
+      to { opacity: 0; filter: blur(2px); transform: translate(-50%, -130%) scaleY(1.2);}
     }
     .money-float {
       position: absolute; left: 0; top: 0; pointer-events: none;
@@ -145,8 +141,7 @@
       border-radius: 1vw !important;
       line-height: 6vw !important;
       left: calc(50% - 7vw) !important;
-      /* her timer tam merkezde, biraz yukarıda */
-      top: -17px !important;
+      top: -23px !important;
       background: rgba(255,255,255,0.85);
       color: #000;
       position: absolute;
@@ -156,7 +151,6 @@
     ::-webkit-scrollbar { display: none; }
     body, #game-area, #toolbar { -webkit-user-select: none; -webkit-touch-callout: none; }
     body { overscroll-behavior-y: contain;}
-    /* Yatayda uyarı */
     #rotate-warning {
       display: none;
       position: fixed;
@@ -209,9 +203,9 @@
     <small>(Oyun sadece dikey oynanır)</small>
   </div>
 <script>
-const VIRTUAL_W = 420, VIRTUAL_H = 800; // Mobil portre ve sütun için ideal
+const VIRTUAL_W = 800, VIRTUAL_H = 1200; // Dikey izometrik büyük alan
 let scale = 1, offsetLeft = 0, offsetTop = 0;
-const tileW = 140, tileH = 100;
+const tileW = 128, tileH = 84;
 const plotImgSrc = "img/Plot.webp";
 const plot1ImgSrc = "img/Plot1.webp";
 const plot2ImgSrc = "img/Plot2.webp";
@@ -252,9 +246,9 @@ let handledCoords = new Set();
 
 function updateGameAreaTransform() {
   let ww = window.innerWidth, wh = window.innerHeight;
-  scale = Math.min(ww / VIRTUAL_W, wh * 0.90 / VIRTUAL_H); // üst barı ve toolbarı hesaba kat
+  scale = Math.min(ww / VIRTUAL_W, wh * 0.98 / VIRTUAL_H);
   offsetLeft = (ww - VIRTUAL_W * scale) / 2;
-  offsetTop = 0;
+  offsetTop = ((wh * 0.98) - VIRTUAL_H * scale) / 2;
   gameArea.style.transform = `scale(${scale})`;
   gameArea.style.left = `${offsetLeft / scale}px`;
   gameArea.style.top = `${offsetTop / scale}px`;
@@ -296,18 +290,24 @@ function screenToGame(x, y) {
   };
 }
 function isoToScreen(x, y) {
-  // Sadece tek sütun: x = 0; y artıyor
+  const centerX = VIRTUAL_W / 2;
+  const centerY = 350; // Alanın ortasına yasla
   return {
-    left: VIRTUAL_W / 2,
-    top: 60 + y * (tileH + 16)
+    left: centerX + (x - y) * (tileW / 2),
+    top: centerY + (x + y) * (tileH / 2)
   };
 }
 function screenToIso(screenX, screenY) {
   const {x, y} = screenToGame(screenX, screenY);
-  // Oyun alanı dikeyde tam merkez: tek sütun, y eksenini bölelim
-  let iy = Math.round((y - 60) / (tileH + 16));
-  return {x: 0, y: iy};
+  const centerX = VIRTUAL_W / 2;
+  const centerY = 350;
+  const mouseX = x - centerX;
+  const mouseY = y - centerY;
+  let ix = Math.round((mouseY / (tileH / 2) + mouseX / (tileW / 2)) / 2);
+  let iy = Math.round((mouseY / (tileH / 2) - mouseX / (tileW / 2)) / 2);
+  return {x: ix, y: iy};
 }
+function plotId(x, y) { return `plot-${x}-${y}`; }
 function updateMoneyBar(type) {
   moneyAmount.textContent = money;
   moneyBar.classList.remove('money-gain', 'money-lose');
@@ -433,17 +433,18 @@ removeBtn.addEventListener('click', () => setToolMode("remove"));
 wheatBtn.addEventListener('click', () => setToolMode("wheat"));
 sickleBtn.addEventListener('click', () => setToolMode("sickle"));
 
-function plotId(y) { return `plot-0-${y}`; }
 function addPlot(x, y, mousePos = null) {
-  if (plots.find(p => p.y === y)) return false;
+  if (plots.find(p => p.x === x && p.y === y)) return false;
   if (money < EKIM_MALIYET) return false;
-  plots.push({x: 0, y});
-  const coords = isoToScreen(0, y);
+  plots.push({x, y});
+  const coords = isoToScreen(x, y);
   const img = document.createElement('img');
   img.src = plotImgSrc;
   img.className = "iso-plot";
+  img.style.left = coords.left + "px";
   img.style.top = coords.top + "px";
-  img.id = plotId(y);
+  img.id = plotId(x, y);
+  if (isPickaxe) img.classList.add('fall-anim');
   gameArea.appendChild(img);
   money -= EKIM_MALIYET;
   updateMoneyBar('lose');
@@ -456,24 +457,23 @@ function addPlot(x, y, mousePos = null) {
   return true;
 }
 function addWheat(x, y) {
-  if (!plots.find(p => p.y === y)) return false;
-  if (wheats.find(w => w.y === y)) return false;
+  if (!plots.find(p => p.x === x && p.y === y)) return false;
+  if (wheats.find(w => w.x === x && w.y === y)) return false;
   if (wheat < 1) return false;
   const barRect = wheatBar.getBoundingClientRect();
-  const coords = isoToScreen(0, y);
-  const plotPos = { x: window.innerWidth / 2, y: coords.top + 50 };
+  const coords = isoToScreen(x, y);
+  const plotPos = { x: coords.left, y: coords.top };
   const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
   animateWheatFly({ from: barPos, to: plotPos, count: 1 });
   wheat--;
   updateWheatBar();
-  const plotImg = document.getElementById(plotId(y));
+  const plotImg = document.getElementById(plotId(x, y));
   if (!plotImg) return false;
   const now = Date.now();
   let timerDiv = document.createElement('div');
-  timerDiv.style.top = "-17px";
-  timerDiv.id = `timer-0-${y}`;
+  timerDiv.id = `timer-${x}-${y}`;
   let wheatObj = {
-    y,
+    x, y,
     plantedAt: now,
     ready: false,
     timerEl: timerDiv,
@@ -505,15 +505,19 @@ function addWheat(x, y) {
   }
   updateTimer();
   wheatObj.timerInterval = setInterval(updateTimer, 400);
+  timerDiv.style.position = "absolute";
+  timerDiv.style.left = "50%";
+  timerDiv.style.top = "-23px";
+  timerDiv.style.transform = "translateX(-50%)";
   plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
   wheats.push(wheatObj);
   return true;
 }
 function harvestWheat(x, y) {
-  const wheatObj = wheats.find(w => w.y === y);
+  const wheatObj = wheats.find(w => w.x === x && w.y === y);
   if (!wheatObj || !wheatObj.ready || wheatObj.harvested) return false;
   wheatObj.harvested = true;
-  const plotImg = document.getElementById(plotId(y));
+  const plotImg = document.getElementById(plotId(x, y));
   if (plotImg) plotImg.src = plotImgSrc;
   const plotRect = plotImg.getBoundingClientRect();
   const barRect = wheatBar.getBoundingClientRect();
@@ -522,20 +526,20 @@ function harvestWheat(x, y) {
   animateWheatFly({from, to, count: 4});
   if (wheatObj.timerEl) wheatObj.timerEl.remove();
   if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
-  wheats = wheats.filter(w => !(w.y === y));
+  wheats = wheats.filter(w => !(w.x === x && w.y === y));
   setTimeout(() => { wheat += 4; updateWheatBar(); }, 500);
   return true;
 }
 function removePlot(x, y, mousePos = null) {
-  const idx = plots.findIndex(p => p.y === y);
+  const idx = plots.findIndex(p => p.x === x && p.y === y);
   if (idx !== -1) {
     plots.splice(idx, 1);
-    const el = document.getElementById(plotId(y));
+    const el = document.getElementById(plotId(x, y));
     if (el) {
       el.classList.add('fly-anim');
       el.addEventListener('animationend', () => { if (el && el.parentNode) el.parentNode.removeChild(el); }, {once:true});
     }
-    const wheatIdx = wheats.findIndex(w => w.y === y);
+    const wheatIdx = wheats.findIndex(w => w.x === x && w.y === y);
     if (wheatIdx !== -1) {
       const wheatObj = wheats[wheatIdx];
       if (wheatObj.timerEl) wheatObj.timerEl.remove();
@@ -563,14 +567,14 @@ function handleActionAtMouse(e) {
     clientX = e.clientX; clientY = e.clientY;
   }
   const { x, y } = screenToIso(clientX, clientY);
-  const key = `0,${y}`;
+  const key = `${x},${y}`;
   if (handledCoords.has(key)) return;
   handledCoords.add(key);
   const mousePos = {x: clientX, y: clientY};
-  if (isPickaxe) addPlot(0, y, mousePos);
-  if (isRemove) removePlot(0, y, mousePos);
-  if (isWheat) addWheat(0, y);
-  if (isSickle) harvestWheat(0, y);
+  if (isPickaxe) addPlot(x, y, mousePos);
+  if (isRemove) removePlot(x, y, mousePos);
+  if (isWheat) addWheat(x, y);
+  if (isSickle) harvestWheat(x, y);
 }
 
 gameArea.addEventListener('mousedown', (e) => {
@@ -596,18 +600,19 @@ document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 function redrawAllPlots() {
   document.querySelectorAll('.iso-plot').forEach(el => el.remove());
   document.querySelectorAll('[id^="timer-"]').forEach(el => el.remove());
-  plots.forEach(({y}) => {
-    const coords = isoToScreen(0, y);
+  plots.forEach(({x, y}) => {
+    const coords = isoToScreen(x, y);
     const img = document.createElement('img');
     img.src = plotImgSrc;
     img.className = "iso-plot";
+    img.style.left = coords.left + "px";
     img.style.top = coords.top + "px";
-    img.id = plotId(y);
+    img.id = plotId(x, y);
     gameArea.appendChild(img);
   });
   wheats.forEach(w => {
-    const coords = isoToScreen(0, w.y);
-    const plotImg = document.getElementById(plotId(w.y));
+    const coords = isoToScreen(w.x, w.y);
+    const plotImg = document.getElementById(plotId(w.x, w.y));
     if (!plotImg) return;
     const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
     const remain = Math.max(0, 6 - elapsed);
@@ -623,7 +628,7 @@ function redrawAllPlots() {
     }
 
     let timerDiv = document.createElement('div');
-    timerDiv.id = `timer-0-${w.y}`;
+    timerDiv.id = `timer-${w.x}-${w.y}`;
     if (remain > 0) {
       timerDiv.textContent = remain;
       timerDiv.style.background = "rgba(255,255,255,0.85)";
@@ -634,6 +639,10 @@ function redrawAllPlots() {
       timerDiv.style.color = "#09980a";
       w.ready = true;
     }
+    timerDiv.style.position = "absolute";
+    timerDiv.style.left = "50%";
+    timerDiv.style.top = "-23px";
+    timerDiv.style.transform = "translateX(-50%)";
     plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
     w.timerEl = timerDiv;
   });
@@ -645,7 +654,6 @@ updateWheatBar();
 updateWheatPriceBar();
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
-// BAŞLANGIÇTA OTO TARLA YOK!
 
 </script>
 </body>
