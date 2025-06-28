@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Küçük Tarlalar</title>
+  <title>Tarım Oyunu - 256x172 Tarlalar</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
     html, body {
@@ -107,8 +107,8 @@
     }
     .iso-plot {
       position: absolute;
-      width: 192px;
-      height: 126px;
+      width: 256px;
+      height: 172px;
       transform: translate(-50%, -50%);
       pointer-events: none;
       transition: filter 0.1s;
@@ -191,7 +191,7 @@
 <script>
 const VIRTUAL_W = 800, VIRTUAL_H = 1200; // Oyun alanı
 let scale = 1, offsetLeft = 0, offsetTop = 0;
-const tileW = 128*1.5, tileH = 84*1.5; // 192 x 126 px
+const tileW = 256, tileH = 172;
 
 const plotImgSrc = "img/Plot.webp";
 const plot1ImgSrc = "img/Plot1.webp";
