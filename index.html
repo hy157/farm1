@@ -151,12 +151,12 @@
     <div id="money-bar">🪙 <span id="money-amount">1000</span></div>
     <div id="wheat-price-bar" title="Elindeki fazla buğdayı sat">
       <img id="wheat-price-icon" src="img/wheat.webp" alt="Buğday">
-      <span id="wheat-price-amount">100</span>
+      <span id="wheat-price-amount">10</span>
       <span id="wheat-price-label"></span>
     </div>
     <div id="wheat-bar">
       <img id="wheat-icon" src="img/wheat.webp" alt="Buğday">
-      <span id="wheat-amount">10</span>
+      <span id="wheat-amount">100</span>
     </div>
   </div>
   <div id="toolbar">
@@ -174,14 +174,15 @@ const plot1ImgSrc = "img/Plot1.webp";
 const plot2ImgSrc = "img/Plot2.webp";
 const plot3ImgSrc = "img/Plot3.webp";
 const wheatImgSrc = "img/wheat.webp";
-const pickaxeCursor = "";
-const removeCursor = "";
 
 const soundCoin = document.getElementById('sound-coin');
 const soundPay = document.getElementById('sound-pay');
 
-let money = 100;
-let wheat = 10;
+// <--- BURASI DEĞİŞTİ!
+let money = 1000;
+let wheat = 100;
+// --->
+
 const EKIM_MALIYET = 50;
 const SILME_KAZANCI = 20;
 
@@ -549,7 +550,6 @@ gameArea.addEventListener('touchstart', (e) => { if (isPickaxe || isRemove || is
 gameArea.addEventListener('touchmove', (e) => { if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) { handleActionAtMouse(e); } });
 gameArea.addEventListener('touchend', () => { isMouseDown = false; handledCoords.clear(); });
 
-// Dokunmatik uzun basma context menu engelle
 document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
 function redrawAllPlots() {
