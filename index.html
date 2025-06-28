@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Mobil Uyumlu</title>
+  <title>Tarım Oyunu - Mobil</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
     html, body {
@@ -14,6 +14,7 @@
       background: #4ecb36;
       font-family: 'Segoe UI', Arial, sans-serif;
       user-select: none;
+      overflow: hidden;
     }
     #game-container {
       position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -43,7 +44,6 @@
       font-weight: bold;
       letter-spacing: 0.5px;
       -webkit-tap-highlight-color: transparent;
-      /* Extra for mobile feedback: */
       touch-action: manipulation;
     }
     .tool-btn.active {
@@ -71,7 +71,6 @@
       user-select: none;
       height: 10vw;
       pointer-events: auto;
-      /* Extra mobile spacing: */
       margin-bottom: 1vw;
     }
     #wheat-price-bar {
@@ -130,7 +129,6 @@
     }
     .money-gain { color: #11c90e; text-shadow: 0 1px 4px #fff8,0 0 2px #45ff42; }
     .money-lose { color: #d62424; text-shadow: 0 1px 4px #fff8,0 0 2px #ff6961; }
-    /* Timer görseli mobilde daha büyük */
     [id^="timer-"] {
       width: 16vw !important;
       height: 6vw !important;
@@ -138,18 +136,14 @@
       border-radius: 1vw !important;
       line-height: 6vw !important;
     }
-    /* Scroll'u tamamen kaldır (iOS için) */
     ::-webkit-scrollbar { display: none; }
-    /* Mobilde longpress seçimi, context menu, metin seçimi kapalı */
     body, #game-area, #toolbar { -webkit-user-select: none; -webkit-touch-callout: none; }
-    /* iPhone "yukarı kaydırınca bar açılmasını" biraz azaltır */
     body { overscroll-behavior-y: contain;}
   </style>
 </head>
 <body>
   <audio id="sound-coin" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa4f88.mp3"></audio>
   <audio id="sound-pay" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115bfae13d.mp3"></audio>
-
   <div id="game-container">
     <div id="game-area"></div>
   </div>
@@ -171,18 +165,56 @@
     <button id="sickle-btn" class="tool-btn" aria-label="Biç (3)">🔪</button>
     <button id="remove-btn" class="tool-btn" aria-label="Sil (4)">❌</button>
   </div>
-
 <script>
-// ... <Yukarıdaki javascript'in tamamını burada kullanabilirsin, sadece aşağıda mobil-dokunmatik için ek kodlar var>
+const VIRTUAL_W = 1920, VIRTUAL_H = 1080;
+let scale = 1, offsetLeft = 0, offsetTop = 0;
+const tileW = 192, tileH = 128;
+const plotImgSrc = "img/Plot.webp";
+const plot1ImgSrc = "img/Plot1.webp";
+const plot2ImgSrc = "img/Plot2.webp";
+const plot3ImgSrc = "img/Plot3.webp";
+const wheatImgSrc = "img/wheat.webp";
+const pickaxeCursor = "";
+const removeCursor = "";
 
-// Aşağıdaki kod "responsive" oranları, arayüz, dokunmatik ayarlarını optimize eder:
+const soundCoin = document.getElementById('sound-coin');
+const soundPay = document.getElementById('sound-pay');
+
+let money = 100;
+let wheat = 10;
+const EKIM_MALIYET = 50;
+const SILME_KAZANCI = 20;
+
+let wheatPrice = 10;
+const MIN_WHEAT_PRICE = 10;
+const MAX_WHEAT_PRICE = 20;
+
+const wheatPriceBar = document.getElementById('wheat-price-bar');
+const wheatPriceAmount = document.getElementById('wheat-price-amount');
+
+const pickaxeBtn = document.getElementById('pickaxe-btn');
+const wheatBtn = document.getElementById('wheat-btn');
+const sickleBtn = document.getElementById('sickle-btn');
+const removeBtn = document.getElementById('remove-btn');
+const gameArea = document.getElementById('game-area');
+const moneyBar = document.getElementById('money-bar');
+const moneyAmount = document.getElementById('money-amount');
+const wheatBar = document.getElementById('wheat-bar');
+const wheatAmount = document.getElementById('wheat-amount');
+let isPickaxe = false;
+let isRemove = false;
+let isWheat = false;
+let isSickle = false;
+let isMouseDown = false;
+let plots = [];
+let wheats = [];
+let handledCoords = new Set();
+
 function updateGameAreaTransform() {
-  let container = document.getElementById('game-container');
   let ww = window.innerWidth, wh = window.innerHeight;
-  // Mobilde (özellikle dikeyde) biraz daha fazla alan bırak
-  scale = Math.min(ww / 1920, wh / 1080);
-  offsetLeft = (ww - 1920 * scale) / 2;
-  offsetTop = (wh - 1080 * scale) / 2;
+  scale = Math.min(ww / VIRTUAL_W, wh / VIRTUAL_H);
+  offsetLeft = (ww - VIRTUAL_W * scale) / 2;
+  offsetTop = (wh - VIRTUAL_H * scale) / 2;
   gameArea.style.transform = `scale(${scale})`;
   gameArea.style.left = `${offsetLeft / scale}px`;
   gameArea.style.top = `${offsetTop / scale}px`;
@@ -193,42 +225,399 @@ window.addEventListener('resize', () => {
   updateGameAreaTransform();
   redrawAllPlots();
 });
-// iOS Safari barlar küçüldüğünde tam ekranı korumak için:
 window.addEventListener('orientationchange', () => setTimeout(updateGameAreaTransform, 400));
 
-document.addEventListener('gesturestart', function (e) { e.preventDefault(); }); // zoom'u kapat
-document.addEventListener('touchmove', function (e) {
-  // Tool aktifse, oyun alanı dışına kayma engelle
-  if (isPickaxe || isRemove || isWheat || isSickle) e.preventDefault();
-}, { passive: false });
+function screenToGame(x, y) {
+  return {
+    x: (x - offsetLeft) / scale,
+    y: (y - offsetTop) / scale
+  };
+}
+function isoToScreen(x, y) {
+  const centerX = VIRTUAL_W / 2;
+  const centerY = VIRTUAL_H / 2;
+  return {
+    left: centerX + (x - y) * (tileW / 2),
+    top: centerY + (x + y) * (tileH / 2)
+  };
+}
+function screenToIso(screenX, screenY) {
+  const {x, y} = screenToGame(screenX, screenY);
+  const centerX = VIRTUAL_W / 2;
+  const centerY = VIRTUAL_H / 2;
+  const mouseX = x - centerX;
+  const mouseY = y - centerY;
+  let ix = Math.round((mouseY / (tileH / 2) + mouseX / (tileW / 2)) / 2);
+  let iy = Math.round((mouseY / (tileH / 2) - mouseX / (tileW / 2)) / 2);
+  return {x: ix, y: iy};
+}
 
-// Uzun basınca context menü açılmasını engelle
-document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+function updateMoneyBar(type) {
+  moneyAmount.textContent = money;
+  moneyBar.classList.remove('money-gain', 'money-lose');
+  void moneyBar.offsetWidth;
+  if (type === 'lose') moneyBar.classList.add('money-lose');
+  else if (type === 'gain') moneyBar.classList.add('money-gain');
+  setTimeout(() => moneyBar.classList.remove('money-gain', 'money-lose'), 350);
+}
+function updateWheatBar() { wheatAmount.textContent = wheat; }
+function updateWheatPriceBar(animType) {
+  wheatPriceAmount.textContent = wheatPrice;
+  wheatPriceBar.classList.remove('price-gain', 'price-sell');
+  void wheatPriceBar.offsetWidth;
+  if(animType === 'gain') { wheatPriceBar.classList.add('price-gain'); setTimeout(()=>wheatPriceBar.classList.remove('price-gain'), 350);}
+  if(animType === 'sell') { wheatPriceBar.classList.add('price-sell'); setTimeout(()=>wheatPriceBar.classList.remove('price-sell'), 450);}
+}
+setInterval(() => {
+  wheatPrice = Math.floor(Math.random() * (MAX_WHEAT_PRICE - MIN_WHEAT_PRICE + 1)) + MIN_WHEAT_PRICE;
+  updateWheatPriceBar('gain');
+}, 1000);
 
-/* 
-Diğer javascript kodlarını aynen yukarıdan alıp, bu dosyada kullanabilirsin.
-(Arayüzdeki butonlar, animasyonlar, plot işlemleri vs tamamen aynı şekilde çalışacak.)
-*/
+wheatPriceBar.addEventListener('click', () => {
+  const satilacak = Math.max(0, wheat - 10);
+  if (satilacak === 0) return;
+  const kazanc = satilacak * wheatPrice;
+  const wheatBarRect = wheatBar.getBoundingClientRect();
+  const priceBarRect = wheatPriceBar.getBoundingClientRect();
+  animateWheatFly({
+    from: { x: wheatBarRect.left + wheatBarRect.width/2 - 32, y: wheatBarRect.top + wheatBarRect.height/2 - 32 },
+    to:   { x: priceBarRect.left + priceBarRect.width/2 - 32, y: priceBarRect.top + priceBarRect.height/2 - 32 },
+    count: Math.min(satilacak, 7)
+  });
+  setTimeout(() => {
+    const moneyBarRect = moneyBar.getBoundingClientRect();
+    animateMoneyFloat({
+      amount: kazanc,
+      from: { x: priceBarRect.left + priceBarRect.width/2 - 12, y: priceBarRect.top + priceBarRect.height/2 - 12 },
+      to:   { x: moneyBarRect.left + moneyBarRect.width/2 - 12, y: moneyBarRect.top + moneyBarRect.height/2 - 12 }
+    });
+    soundCoin.currentTime = 0; soundCoin.play();
+  }, 300);
+  wheat -= satilacak;
+  updateWheatBar();
+  setTimeout(() => {
+    money += kazanc;
+    updateMoneyBar('gain');
+    updateWheatPriceBar('sell');
+  }, 450);
+});
+function animateMoneyFloat({amount, from, to}) {
+  const emoji = '🪙';
+  const sign = amount > 0 ? '+' : '';
+  const colorClass = amount > 0 ? 'money-gain' : 'money-lose';
+  const float = document.createElement('span');
+  float.className = `money-float ${colorClass}`;
+  float.textContent = `${sign}${amount} ${emoji}`;
+  float.style.left = from.x + 'px';
+  float.style.top = from.y + 'px';
+  float.style.opacity = 1;
+  document.body.appendChild(float);
+  float.animate([
+    {transform: 'translate(0,0) scale(1)',opacity:1},
+    {transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(1.4)`,opacity:1,offset:0.8},
+    {transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(0.7)`,opacity:0}
+  ], {duration: 700,easing:'cubic-bezier(.57,.11,.82,1.39)'});
+  setTimeout(() => { float.remove(); }, 750);
+}
+function animateWheatFly({from, to, count=1}) {
+  for (let i = 0; i < count; i++) {
+    const icon = document.createElement('img');
+    icon.src = wheatImgSrc;
+    icon.style.position = 'absolute';
+    icon.style.left = from.x + 'px';
+    icon.style.top = from.y + 'px';
+    icon.style.width = '96px';
+    icon.style.height = '96px';
+    icon.style.pointerEvents = 'none';
+    icon.style.opacity = 1;
+    icon.style.zIndex = 100;
+    icon.style.transition = 'none';
+    document.body.appendChild(icon);
+    const startOffsetX = (Math.random()-0.5)*16;
+    const startOffsetY = (Math.random()-0.5)*16;
+    icon.style.transform = `translate(${startOffsetX}px,${startOffsetY}px) scale(1)`;
+    setTimeout(() => {
+      icon.animate([
+        { transform: `translate(${startOffsetX}px,${startOffsetY}px) scale(1)`, opacity: 1 },
+        { transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(1.4)`, opacity: 1, offset: 0.7 },
+        { transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(0.7)`, opacity: 0 }
+      ], { duration: 850 + i*80, easing: 'cubic-bezier(.45,1.2,.49,1)' });
+      setTimeout(() => icon.remove(), 900 + i*80);
+    }, i * 100);
+  }
+}
 
-// <Buraya senin tüm oyunun JS kodunu yukarıdan kopyala>
+function setToolMode(mode) {
+  if (mode === "pickaxe") {
+    isPickaxe = !isPickaxe;
+    if (isPickaxe) { isRemove = false; isWheat = false; isSickle = false; }
+  } else if (mode === "remove") {
+    isRemove = !isRemove;
+    if (isRemove) { isPickaxe = false; isWheat = false; isSickle = false; }
+  } else if (mode === "wheat") {
+    isWheat = !isWheat;
+    if (isWheat) { isPickaxe = false; isRemove = false; isSickle = false; }
+  } else if (mode === "sickle") {
+    isSickle = !isSickle;
+    if (isSickle) { isPickaxe = false; isRemove = false; isWheat = false; }
+  }
+  pickaxeBtn.classList.toggle('active', isPickaxe);
+  removeBtn.classList.toggle('active', isRemove);
+  wheatBtn.classList.toggle('active', isWheat);
+  sickleBtn.classList.toggle('active', isSickle);
 
-// --------------- 
-// OYUNU DİKEY EKSRANDA OYNATMAK için (isteğe bağlı):
-window.addEventListener('resize', () => {
-  if(window.innerWidth < window.innerHeight){
-    document.body.style.flexDirection = 'column';
+  if (isPickaxe) gameArea.style.cursor = `pointer`;
+  else if (isRemove) gameArea.style.cursor = `pointer`;
+  else if (isWheat || isSickle) gameArea.style.cursor = "pointer";
+  else gameArea.style.cursor = "default";
+}
+
+pickaxeBtn.addEventListener('click', () => setToolMode("pickaxe"));
+removeBtn.addEventListener('click', () => setToolMode("remove"));
+wheatBtn.addEventListener('click', () => setToolMode("wheat"));
+sickleBtn.addEventListener('click', () => setToolMode("sickle"));
+
+function plotId(x, y) { return `plot-${x}-${y}`; }
+
+function addPlot(x, y, mousePos = null) {
+  if (plots.find(p => p.x === x && p.y === y)) return false;
+  if (money < EKIM_MALIYET) return false;
+  plots.push({x, y});
+  const coords = isoToScreen(x, y);
+  const img = document.createElement('img');
+  img.src = plotImgSrc;
+  img.className = "iso-plot";
+  img.style.left = coords.left + "px";
+  img.style.top = coords.top + "px";
+  img.id = plotId(x, y);
+  if (isPickaxe) img.classList.add('fall-anim');
+  gameArea.appendChild(img);
+  money -= EKIM_MALIYET;
+  updateMoneyBar('lose');
+  if (mousePos) {
+    const barRect = moneyBar.getBoundingClientRect();
+    const from = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
+    animateMoneyFloat({ amount: -EKIM_MALIYET, from: from, to: mousePos });
+    soundPay.currentTime = 0; soundPay.play();
+  }
+  return true;
+}
+function addWheat(x, y) {
+  if (!plots.find(p => p.x === x && p.y === y)) return false;
+  if (wheats.find(w => w.x === x && w.y === y)) return false;
+  if (wheat < 1) return false;
+  const barRect = wheatBar.getBoundingClientRect();
+  const coords = isoToScreen(x, y);
+  const plotPos = { x: coords.left, y: coords.top };
+  const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
+  animateWheatFly({ from: barPos, to: plotPos, count: 1 });
+  wheat--;
+  updateWheatBar();
+  const plotImg = document.getElementById(plotId(x, y));
+  if (!plotImg) return false;
+  const now = Date.now();
+  let timerDiv = document.createElement('div');
+  timerDiv.style.position = "absolute";
+  timerDiv.style.left = (coords.left - 42) + "px";
+  timerDiv.style.top = (coords.top - 58) + "px";
+  timerDiv.style.width = "84px";
+  timerDiv.style.height = "34px";
+  timerDiv.style.background = "rgba(255,255,255,0.85)";
+  timerDiv.style.borderRadius = "10px";
+  timerDiv.style.textAlign = "center";
+  timerDiv.style.fontWeight = "bold";
+  timerDiv.style.fontSize = "1.3rem";
+  timerDiv.style.lineHeight = "34px";
+  timerDiv.style.pointerEvents = "none";
+  timerDiv.id = `timer-${x}-${y}`;
+  let wheatObj = {
+    x, y,
+    plantedAt: now,
+    ready: false,
+    timerEl: timerDiv,
+    timerInterval: null,
+    harvested: false
+  };
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now() - wheatObj.plantedAt) / 1000);
+    const remain = Math.max(0, 6 - elapsed);
+    if (wheatObj.harvested) return;
+    if (remain > 3) {
+      plotImg.src = plot1ImgSrc;
+    } else if (remain > 0) {
+      plotImg.src = plot2ImgSrc;
+    } else {
+      plotImg.src = plot3ImgSrc;
+    }
+    if (remain > 0) {
+      timerDiv.textContent = remain;
+      timerDiv.style.background = "rgba(255,255,255,0.85)";
+      timerDiv.style.color = "#000";
+    } else {
+      timerDiv.textContent = "✔";
+      timerDiv.style.background = "#baffc9";
+      timerDiv.style.color = "#09980a";
+      wheatObj.ready = true;
+      clearInterval(wheatObj.timerInterval);
+    }
+  }
+  updateTimer();
+  wheatObj.timerInterval = setInterval(updateTimer, 400);
+  gameArea.appendChild(timerDiv);
+  wheats.push(wheatObj);
+  return true;
+}
+function harvestWheat(x, y) {
+  const wheatObj = wheats.find(w => w.x === x && w.y === y);
+  if (!wheatObj || !wheatObj.ready || wheatObj.harvested) return false;
+  wheatObj.harvested = true;
+  const plotImg = document.getElementById(plotId(x, y));
+  if (plotImg) plotImg.src = plotImgSrc;
+  const plotRect = plotImg.getBoundingClientRect();
+  const barRect = wheatBar.getBoundingClientRect();
+  const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
+  const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
+  animateWheatFly({from, to, count: 4});
+  if (wheatObj.timerEl) wheatObj.timerEl.remove();
+  if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
+  wheats = wheats.filter(w => !(w.x === x && w.y === y));
+  setTimeout(() => { wheat += 4; updateWheatBar(); }, 500);
+  return true;
+}
+function removePlot(x, y, mousePos = null) {
+  const idx = plots.findIndex(p => p.x === x && p.y === y);
+  if (idx !== -1) {
+    plots.splice(idx, 1);
+    const el = document.getElementById(plotId(x, y));
+    if (el) {
+      el.classList.add('fly-anim');
+      el.addEventListener('animationend', () => { if (el && el.parentNode) el.parentNode.removeChild(el); }, {once:true});
+    }
+    const wheatIdx = wheats.findIndex(w => w.x === x && w.y === y);
+    if (wheatIdx !== -1) {
+      const wheatObj = wheats[wheatIdx];
+      if (wheatObj.timerEl) wheatObj.timerEl.remove();
+      if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
+      wheats.splice(wheatIdx, 1);
+    }
+    money += SILME_KAZANCI;
+    updateMoneyBar('gain');
+    if (mousePos) {
+      const barRect = moneyBar.getBoundingClientRect();
+      const to = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
+      animateMoneyFloat({ amount: SILME_KAZANCI, from: mousePos, to: to });
+      soundCoin.currentTime = 0; soundCoin.play();
+    }
+    return true;
+  }
+  return false;
+}
+function handleActionAtMouse(e) {
+  let clientX, clientY;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX; clientY = e.clientY;
+  }
+  const { x, y } = screenToIso(clientX, clientY);
+  const key = `${x},${y}`;
+  if (handledCoords.has(key)) return;
+  handledCoords.add(key);
+  const mousePos = {x: clientX, y: clientY};
+  if (isPickaxe) addPlot(x, y, mousePos);
+  if (isRemove) removePlot(x, y, mousePos);
+  if (isWheat) addWheat(x, y);
+  if (isSickle) harvestWheat(x, y);
+}
+
+gameArea.addEventListener('mousedown', (e) => {
+  if (isPickaxe || isRemove || isWheat || isSickle) {
+    isMouseDown = true;
+    handledCoords.clear();
+    handleActionAtMouse(e);
   }
 });
+gameArea.addEventListener('mousemove', (e) => {
+  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
+    handleActionAtMouse(e);
+  }
+});
+document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
+gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
+gameArea.addEventListener('touchstart', (e) => { if (isPickaxe || isRemove || isWheat || isSickle) { isMouseDown = true; handledCoords.clear(); handleActionAtMouse(e); } });
+gameArea.addEventListener('touchmove', (e) => { if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) { handleActionAtMouse(e); } });
+gameArea.addEventListener('touchend', () => { isMouseDown = false; handledCoords.clear(); });
 
-// --------------- 
-// OYUNU YAVAŞ TELEFONLARDA HIZLANDIRMAK için (isteğe bağlı):
-// setInterval'ler ve animasyonlar gecikmeli ise, saniye değerlerini artırabilirsin.
+// Dokunmatik uzun basma context menu engelle
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
-// --------------- 
-// iOS iPad ve iPhone özel ufak dokunuşlar için aşağıya ek stil yazabilirsin.
+function redrawAllPlots() {
+  document.querySelectorAll('.iso-plot').forEach(el => el.remove());
+  document.querySelectorAll('[id^="timer-"]').forEach(el => el.remove());
+  plots.forEach(({x, y}) => {
+    const coords = isoToScreen(x, y);
+    const img = document.createElement('img');
+    img.src = plotImgSrc;
+    img.className = "iso-plot";
+    img.style.left = coords.left + "px";
+    img.style.top = coords.top + "px";
+    img.id = plotId(x, y);
+    gameArea.appendChild(img);
+  });
+  wheats.forEach(w => {
+    const coords = isoToScreen(w.x, w.y);
+    const plotImg = document.getElementById(plotId(w.x, w.y));
+    if (!plotImg) return;
+    const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
+    const remain = Math.max(0, 6 - elapsed);
 
-// --------------- 
-// OYUNU "HOME SCREEN"e EKLEYEN KULLANICILAR için manifest ve ikonlar eklenebilir (isteğe bağlı).
+    if (w.harvested) return;
+
+    if (remain > 3) {
+      plotImg.src = plot1ImgSrc;
+    } else if (remain > 0) {
+      plotImg.src = plot2ImgSrc;
+    } else {
+      plotImg.src = plot3ImgSrc;
+    }
+
+    let timerDiv = document.createElement('div');
+    timerDiv.style.position = "absolute";
+    timerDiv.style.left = (coords.left - 42) + "px";
+    timerDiv.style.top = (coords.top - 58) + "px";
+    timerDiv.style.width = "84px";
+    timerDiv.style.height = "34px";
+    timerDiv.style.borderRadius = "10px";
+    timerDiv.style.textAlign = "center";
+    timerDiv.style.fontWeight = "bold";
+    timerDiv.style.fontSize = "1.3rem";
+    timerDiv.style.lineHeight = "34px";
+    timerDiv.style.pointerEvents = "none";
+    timerDiv.id = `timer-${w.x}-${w.y}`;
+    if (remain > 0) {
+      timerDiv.textContent = remain;
+      timerDiv.style.background = "rgba(255,255,255,0.85)";
+      timerDiv.style.color = "#000";
+    } else {
+      timerDiv.textContent = "✔";
+      timerDiv.style.background = "#baffc9";
+      timerDiv.style.color = "#09980a";
+      w.ready = true;
+    }
+    gameArea.appendChild(timerDiv);
+    w.timerEl = timerDiv;
+  });
+}
+
+document.getElementById('wheat-icon').src = wheatImgSrc;
+document.getElementById('wheat-price-icon').src = wheatImgSrc;
+updateWheatBar();
+updateWheatPriceBar();
+
+addPlot(0, 0);
+addPlot(1, 0);
+addPlot(0, 1);
 
 </script>
 </body>
