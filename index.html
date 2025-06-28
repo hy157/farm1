@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Büyük Tarlalar</title>
+  <title>Tarım Oyunu - Küçük Tarlalar</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
     html, body {
@@ -107,8 +107,8 @@
     }
     .iso-plot {
       position: absolute;
-      width: 384px;
-      height: 252px;
+      width: 192px;
+      height: 126px;
       transform: translate(-50%, -50%);
       pointer-events: none;
       transition: filter 0.1s;
@@ -134,39 +134,6 @@
     }
     .money-gain { color: #11c90e; text-shadow: 0 1px 4px #fff8,0 0 2px #45ff42; }
     .money-lose { color: #d62424; text-shadow: 0 1px 4px #fff8,0 0 2px #ff6961; }
-    .plot-timer {
-      position: absolute;
-      left: 50%; top: 50%; transform: translate(-50%, -50%);
-      min-width: 90px; min-height: 70px;
-      background: rgba(255,255,255,0.64);
-      color: #252;
-      border-radius: 2vw;
-      font-size: 4.8rem;
-      font-weight: bold;
-      text-align: center;
-      padding: 10px 32px;
-      box-shadow: 0 1px 18px #0002;
-      z-index: 4;
-      letter-spacing: 1.5px;
-      pointer-events: none;
-      border: 2.5px solid #b5ffc3;
-      opacity: 1;
-      will-change: opacity, scale;
-      transition: background 0.2s, color 0.2s, scale 0.2s;
-    }
-    .plot-timer.ready {
-      background: #baffc9e0;
-      color: #09980a;
-      border: 2.5px solid #21cd3f;
-      animation: timer-check-anim 0.4s cubic-bezier(.61,-0.1,.57,1.5) 1;
-      font-size: 5.5rem;
-      scale: 1.10;
-    }
-    @keyframes timer-check-anim {
-      from { scale:0.7; opacity:0; }
-      80% { scale:1.15; opacity:1;}
-      to { scale:1.10; opacity:1;}
-    }
     ::-webkit-scrollbar { display: none; }
     body, #game-area, #toolbar { -webkit-user-select: none; -webkit-touch-callout: none; }
     body { overscroll-behavior-y: contain;}
@@ -224,8 +191,7 @@
 <script>
 const VIRTUAL_W = 800, VIRTUAL_H = 1200; // Oyun alanı
 let scale = 1, offsetLeft = 0, offsetTop = 0;
-// === TARLA 3 KAT DAHA BÜYÜK ===
-const tileW = 128*3, tileH = 84*3; // 384x252px
+const tileW = 128*1.5, tileH = 84*1.5; // 192 x 126 px
 
 const plotImgSrc = "img/Plot.webp";
 const plot1ImgSrc = "img/Plot1.webp";
@@ -491,14 +457,11 @@ function addWheat(x, y) {
   const plotImg = document.getElementById(plotId(x, y));
   if (!plotImg) return false;
   const now = Date.now();
-  let timerDiv = document.createElement('div');
-  timerDiv.className = "plot-timer";
-  timerDiv.id = `timer-${x}-${y}`;
   let wheatObj = {
     x, y,
     plantedAt: now,
     ready: false,
-    timerEl: timerDiv,
+    timerEl: null,
     timerInterval: null,
     harvested: false
   };
@@ -512,25 +475,12 @@ function addWheat(x, y) {
       plotImg.src = plot2ImgSrc;
     } else {
       plotImg.src = plot3ImgSrc;
-    }
-    if (remain > 0) {
-      timerDiv.textContent = remain;
-      timerDiv.classList.remove('ready');
-    } else {
-      timerDiv.textContent = "✔";
-      timerDiv.classList.add('ready');
       wheatObj.ready = true;
       clearInterval(wheatObj.timerInterval);
     }
   }
   updateTimer();
   wheatObj.timerInterval = setInterval(updateTimer, 400);
-
-  // timerDiv tam ortada, büyük ve yarı saydam
-  timerDiv.style.left = "50%";
-  timerDiv.style.top = "50%";
-  timerDiv.style.transform = "translate(-50%, -50%)";
-  plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
   wheats.push(wheatObj);
   return true;
 }
@@ -545,7 +495,6 @@ function harvestWheat(x, y) {
   const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
   const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
   animateWheatFly({from, to, count: 4});
-  if (wheatObj.timerEl) wheatObj.timerEl.remove();
   if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
   wheats = wheats.filter(w => !(w.x === x && w.y === y));
   setTimeout(() => { wheat += 4; updateWheatBar(); }, 500);
@@ -563,7 +512,6 @@ function removePlot(x, y, mousePos = null) {
     const wheatIdx = wheats.findIndex(w => w.x === x && w.y === y);
     if (wheatIdx !== -1) {
       const wheatObj = wheats[wheatIdx];
-      if (wheatObj.timerEl) wheatObj.timerEl.remove();
       if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
       wheats.splice(wheatIdx, 1);
     }
@@ -620,7 +568,6 @@ document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
 function redrawAllPlots() {
   document.querySelectorAll('.iso-plot').forEach(el => el.remove());
-  document.querySelectorAll('.plot-timer').forEach(el => el.remove());
   plots.forEach(({x, y}) => {
     const coords = isoToScreen(x, y);
     const img = document.createElement('img');
@@ -646,22 +593,8 @@ function redrawAllPlots() {
       plotImg.src = plot2ImgSrc;
     } else {
       plotImg.src = plot3ImgSrc;
-    }
-
-    let timerDiv = document.createElement('div');
-    timerDiv.className = "plot-timer" + (remain === 0 ? " ready" : "");
-    timerDiv.id = `timer-${w.x}-${w.y}`;
-    timerDiv.style.left = "50%";
-    timerDiv.style.top = "50%";
-    timerDiv.style.transform = "translate(-50%, -50%)";
-    if (remain > 0) {
-      timerDiv.textContent = remain;
-    } else {
-      timerDiv.textContent = "✔";
       w.ready = true;
     }
-    plotImg.parentNode.insertBefore(timerDiv, plotImg.nextSibling);
-    w.timerEl = timerDiv;
   });
 }
 
