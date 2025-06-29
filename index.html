@@ -252,9 +252,10 @@ const goStrawberryBtn = document.getElementById('go-strawberry-btn');
 const goWheatBtn = document.getElementById('go-wheat-btn');
 
 goStrawberryBtn.addEventListener('click', ()=>{
-  if(!strawberryPageUnlocked && money >= 10000 && wheat >= 300) {
-    money -= 10000;
-    wheat -= 300;
+  // İlk geçişte 5000 para, 100 buğday gereksinimi
+  if(!strawberryPageUnlocked && money >= 5000 && wheat >= 100) {
+    money -= 5000;
+    wheat -= 100;
     updateMoneyBar('lose');
     updateWheatBar();
     strawberryMoney = money;
@@ -269,6 +270,7 @@ goStrawberryBtn.addEventListener('click', ()=>{
     redrawAllStrawberryPlots();
     updateGoStrawberryBtn();
   }
+  // Geçiş izni varsa sonsuza kadar geçiş
   else if(strawberryPageUnlocked) {
     strawberryMoney = money;
     showPage('strawberry');
@@ -280,7 +282,7 @@ goStrawberryBtn.addEventListener('click', ()=>{
   }
 });
 
-goWheatBtn.addEventListener('click', ()=>{
+  goWheatBtn.addEventListener('click', ()=>{
   money = strawberryMoney;
   showPage('wheat');
   updateMoneyBar();
