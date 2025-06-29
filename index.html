@@ -190,8 +190,8 @@
   <div id="toolbar">
     <button id="pickaxe-btn" class="tool-btn" aria-label="Kaz">⛏️</button>
     <button id="wheat-btn" class="tool-btn" aria-label="Ekin ek">🌾</button>
-    <button id="sickle-btn" class="tool-btn" aria-label="Biç">✂️</button>
-    <button id="remove-btn" class="tool-btn" aria-label="Sil">❌</button>
+    <button id="sickle-btn" class="tool-btn" aria-label="Biç">🔪</button>
+    <button id="remove-btn" class="tool-btn" aria-label="Sil">✂️</button>
   </div>
   <div id="rotate-warning">
     <div class="icon">🔄</div>
@@ -522,6 +522,8 @@ function removePlot(x, y, mousePos = null) {
   }
   return false;
 }
+
+// === DOKUNMATİK ve MOUSE EVENTLERİ ===
 function handleActionAtMouse(e) {
   let clientX, clientY;
   if (e.touches && e.touches.length > 0) {
@@ -541,12 +543,12 @@ function handleActionAtMouse(e) {
   if (isSickle) harvestWheat(x, y);
 }
 
+// --- Mouse Eventleri ---
 gameArea.addEventListener('mousedown', (e) => {
-  if (isPickaxe || isRemove || isWheat || isSickle) {
-    isMouseDown = true;
-    handledCoords.clear();
-    handleActionAtMouse(e);
-  }
+  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
+  isMouseDown = true;
+  handledCoords.clear();
+  handleActionAtMouse(e);
 });
 gameArea.addEventListener('mousemove', (e) => {
   if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
@@ -555,18 +557,31 @@ gameArea.addEventListener('mousemove', (e) => {
 });
 document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
 gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
-gameArea.addEventListener('touchstart', (e) => { if (isPickaxe || isRemove || isWheat || isSickle) { isMouseDown = true; handledCoords.clear(); handleActionAtMouse(e); } });
-gameArea.addEventListener('touchmove', (e) => { if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) { handleActionAtMouse(e); } });
-gameArea.addEventListener('touchend', () => { isMouseDown = false; handledCoords.clear(); });
 
+// --- Dokunmatik Eventleri ---
+gameArea.addEventListener('touchstart', (e) => {
+  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
+  e.preventDefault();
+  isMouseDown = true;
+  handledCoords.clear();
+  handleActionAtMouse(e);
+});
+gameArea.addEventListener('touchmove', (e) => {
+  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
+    handleActionAtMouse(e);
+  }
+});
+gameArea.addEventListener('touchend', () => { isMouseDown = false; handledCoords.clear(); });
+gameArea.addEventListener('touchcancel', () => { isMouseDown = false; handledCoords.clear(); });
+
+// Sağ tık menüsünü kapat
 document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
+// --- DOM Çizimleri ---
 function redrawAllPlots() {
-  // Tüm plot ve ekin img'lerini temizle
   document.querySelectorAll('.iso-plot').forEach(el => el.remove());
   document.querySelectorAll('.iso-wheat').forEach(el => el.remove());
 
-  // Tarlalar ve üstlerindeki ekinler için birleşik liste oluştur
   let items = [];
   plots.forEach(plot => {
     items.push({type: 'plot', x: plot.x, y: plot.y});
@@ -575,7 +590,6 @@ function redrawAllPlots() {
     if (wheat.harvested) return;
     items.push({type: 'wheat', x: wheat.x, y: wheat.y, wheat});
   });
-  // Y'ye, sonra X'e göre sırala (yukarıdan aşağıya, sola doğru)
   items.sort((a, b) => a.y - b.y || a.x - b.x);
 
   items.forEach(item => {
@@ -587,7 +601,7 @@ function redrawAllPlots() {
       img.style.left = coords.left + "px";
       img.style.top = coords.top + "px";
       img.id = plotId(item.x, item.y);
-      img.style.zIndex = 10 + item.y; // y arttıkça önde
+      img.style.zIndex = 10 + item.y;
       gameArea.appendChild(img);
     } else if (item.type === 'wheat') {
       let wheatSrc;
@@ -604,7 +618,7 @@ function redrawAllPlots() {
       wheatImg.className = "iso-wheat";
       wheatImg.style.left = coords.left + "px";
       wheatImg.style.top = coords.top + "px";
-      wheatImg.style.zIndex = 20 + item.y; // Her zaman tarladan üstte, ama y'ye bağlı
+      wheatImg.style.zIndex = 20 + item.y;
       gameArea.appendChild(wheatImg);
     }
   });
