@@ -294,7 +294,7 @@ function isoToScreen(x, y) {
     top: centerY + (x + y) * (tileH / 2)
   };
 }
-// ==== BU FONKSİYONU DÜZENLEDİK ====
+// === Dokunulan yere ortalama düzeltmesi ===
 function screenToIso(screenX, screenY) {
   // Yarı tile kadar yukarı kaydır, dokunulan yere merkez gelsin!
   const {x, y} = screenToGame(screenX, screenY - tileH / 2);
@@ -306,7 +306,6 @@ function screenToIso(screenX, screenY) {
   let iy = Math.round((mouseY / (tileH / 2) - mouseX / (tileW / 2)) / 2);
   return {x: ix, y: iy};
 }
-// ==== DÜZENLEME SONU ====
 
 function plotId(x, y) { return `plot-${x}-${y}`; }
 function updateMoneyBar(type) {
@@ -562,20 +561,28 @@ gameArea.addEventListener('mousemove', (e) => {
 document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
 gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
 
-// --- Dokunmatik Eventleri ---
+// --- Dokunmatik Eventleri (garanti tekli dokunuş!) ---
 gameArea.addEventListener('touchstart', (e) => {
   if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
   e.preventDefault();
   isMouseDown = true;
   handledCoords.clear();
   handleActionAtMouse(e);
+
+  setTimeout(() => handledCoords.clear(), 80);
+});
+gameArea.addEventListener('touchend', (e) => {
+  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
+  handleActionAtMouse(e);
+
+  isMouseDown = false;
+  handledCoords.clear();
 });
 gameArea.addEventListener('touchmove', (e) => {
   if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
     handleActionAtMouse(e);
   }
 });
-gameArea.addEventListener('touchend', () => { isMouseDown = false; handledCoords.clear(); });
 gameArea.addEventListener('touchcancel', () => { isMouseDown = false; handledCoords.clear(); });
 
 // Sağ tık menüsünü kapat
