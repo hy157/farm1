@@ -115,6 +115,16 @@
       will-change: transform, filter, opacity;
       z-index: 2;
     }
+    .iso-wheat {
+      position: absolute;
+      width: 256px;
+      height: 172px;
+      pointer-events: none;
+      left: 0; top: 0;
+      transform: translate(-50%, -50%);
+      z-index: 22;
+      will-change: transform, filter, opacity;
+    }
     .fall-anim { animation: fall-in 0.4s cubic-bezier(.55,1.5,.58,1) both; }
     @keyframes fall-in {
       from { opacity: 0; transform: translate(-50%, -130%) scaleY(1.2); filter: blur(2px);}
@@ -180,8 +190,8 @@
   <div id="toolbar">
     <button id="pickaxe-btn" class="tool-btn" aria-label="Kaz">⛏️</button>
     <button id="wheat-btn" class="tool-btn" aria-label="Ekin ek">🌾</button>
-    <button id="sickle-btn" class="tool-btn" aria-label="Biç">🔪</button>
-    <button id="remove-btn" class="tool-btn" aria-label="Sil">✂️</button>
+    <button id="sickle-btn" class="tool-btn" aria-label="Biç">✂️</button>
+    <button id="remove-btn" class="tool-btn" aria-label="Sil">❌</button>
   </div>
   <div id="rotate-warning">
     <div class="icon">🔄</div>
@@ -424,17 +434,9 @@ function addPlot(x, y, mousePos = null) {
   if (plots.find(p => p.x === x && p.y === y)) return false;
   if (money < EKIM_MALIYET) return false;
   plots.push({x, y});
-  const coords = isoToScreen(x, y);
-  const img = document.createElement('img');
-  img.src = plotImgSrc;
-  img.className = "iso-plot";
-  img.style.left = coords.left + "px";
-  img.style.top = coords.top + "px";
-  img.id = plotId(x, y);
-  if (isPickaxe) img.classList.add('fall-anim');
-  gameArea.appendChild(img);
   money -= EKIM_MALIYET;
   updateMoneyBar('lose');
+  redrawAllPlots();
   if (mousePos) {
     const barRect = moneyBar.getBoundingClientRect();
     const from = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
@@ -454,14 +456,11 @@ function addWheat(x, y) {
   animateWheatFly({ from: barPos, to: plotPos, count: 1 });
   wheat--;
   updateWheatBar();
-  const plotImg = document.getElementById(plotId(x, y));
-  if (!plotImg) return false;
   const now = Date.now();
   let wheatObj = {
     x, y,
     plantedAt: now,
     ready: false,
-    timerEl: null,
     timerInterval: null,
     harvested: false
   };
@@ -469,46 +468,41 @@ function addWheat(x, y) {
     const elapsed = Math.floor((Date.now() - wheatObj.plantedAt) / 1000);
     const remain = Math.max(0, 6 - elapsed);
     if (wheatObj.harvested) return;
-    if (remain > 3) {
-      plotImg.src = plot1ImgSrc;
-    } else if (remain > 0) {
-      plotImg.src = plot2ImgSrc;
-    } else {
-      plotImg.src = plot3ImgSrc;
+    if (remain <= 0) {
       wheatObj.ready = true;
       clearInterval(wheatObj.timerInterval);
+      redrawAllPlots();
+    } else {
+      redrawAllPlots();
     }
   }
   updateTimer();
   wheatObj.timerInterval = setInterval(updateTimer, 400);
   wheats.push(wheatObj);
+  redrawAllPlots();
   return true;
 }
 function harvestWheat(x, y) {
   const wheatObj = wheats.find(w => w.x === x && w.y === y);
   if (!wheatObj || !wheatObj.ready || wheatObj.harvested) return false;
   wheatObj.harvested = true;
-  const plotImg = document.getElementById(plotId(x, y));
-  if (plotImg) plotImg.src = plotImgSrc;
-  const plotRect = plotImg.getBoundingClientRect();
+  if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
+  const coords = isoToScreen(x, y);
+  const plotRect = { left: coords.left - 128, top: coords.top - 86, width: 256, height: 172 };
   const barRect = wheatBar.getBoundingClientRect();
   const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
   const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
   animateWheatFly({from, to, count: 4});
-  if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
   wheats = wheats.filter(w => !(w.x === x && w.y === y));
-  setTimeout(() => { wheat += 4; updateWheatBar(); }, 500);
+  setTimeout(() => { wheat += 4; updateWheatBar(); redrawAllPlots(); }, 500);
+  redrawAllPlots();
   return true;
 }
 function removePlot(x, y, mousePos = null) {
   const idx = plots.findIndex(p => p.x === x && p.y === y);
   if (idx !== -1) {
     plots.splice(idx, 1);
-    const el = document.getElementById(plotId(x, y));
-    if (el) {
-      el.classList.add('fly-anim');
-      el.addEventListener('animationend', () => { if (el && el.parentNode) el.parentNode.removeChild(el); }, {once:true});
-    }
+    // Bu plotta ekin varsa da sil
     const wheatIdx = wheats.findIndex(w => w.x === x && w.y === y);
     if (wheatIdx !== -1) {
       const wheatObj = wheats[wheatIdx];
@@ -517,6 +511,7 @@ function removePlot(x, y, mousePos = null) {
     }
     money += SILME_KAZANCI;
     updateMoneyBar('gain');
+    redrawAllPlots();
     if (mousePos) {
       const barRect = moneyBar.getBoundingClientRect();
       const to = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
@@ -567,33 +562,50 @@ gameArea.addEventListener('touchend', () => { isMouseDown = false; handledCoords
 document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
 function redrawAllPlots() {
+  // Tüm plot ve ekin img'lerini temizle
   document.querySelectorAll('.iso-plot').forEach(el => el.remove());
-  plots.forEach(({x, y}) => {
-    const coords = isoToScreen(x, y);
-    const img = document.createElement('img');
-    img.src = plotImgSrc;
-    img.className = "iso-plot";
-    img.style.left = coords.left + "px";
-    img.style.top = coords.top + "px";
-    img.id = plotId(x, y);
-    gameArea.appendChild(img);
+  document.querySelectorAll('.iso-wheat').forEach(el => el.remove());
+
+  // Tarlalar ve üstlerindeki ekinler için birleşik liste oluştur
+  let items = [];
+  plots.forEach(plot => {
+    items.push({type: 'plot', x: plot.x, y: plot.y});
   });
-  wheats.forEach(w => {
-    const coords = isoToScreen(w.x, w.y);
-    const plotImg = document.getElementById(plotId(w.x, w.y));
-    if (!plotImg) return;
-    const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
-    const remain = Math.max(0, 6 - elapsed);
+  wheats.forEach(wheat => {
+    if (wheat.harvested) return;
+    items.push({type: 'wheat', x: wheat.x, y: wheat.y, wheat});
+  });
+  // Y'ye, sonra X'e göre sırala (yukarıdan aşağıya, sola doğru)
+  items.sort((a, b) => a.y - b.y || a.x - b.x);
 
-    if (w.harvested) return;
+  items.forEach(item => {
+    const coords = isoToScreen(item.x, item.y);
+    if (item.type === 'plot') {
+      const img = document.createElement('img');
+      img.src = plotImgSrc;
+      img.className = "iso-plot";
+      img.style.left = coords.left + "px";
+      img.style.top = coords.top + "px";
+      img.id = plotId(item.x, item.y);
+      img.style.zIndex = 10 + item.y; // y arttıkça önde
+      gameArea.appendChild(img);
+    } else if (item.type === 'wheat') {
+      let wheatSrc;
+      const w = item.wheat;
+      const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
+      const remain = Math.max(0, 6 - elapsed);
 
-    if (remain > 3) {
-      plotImg.src = plot1ImgSrc;
-    } else if (remain > 0) {
-      plotImg.src = plot2ImgSrc;
-    } else {
-      plotImg.src = plot3ImgSrc;
-      w.ready = true;
+      if (remain > 3) wheatSrc = plot1ImgSrc;
+      else if (remain > 0) wheatSrc = plot2ImgSrc;
+      else { wheatSrc = plot3ImgSrc; w.ready = true; }
+
+      const wheatImg = document.createElement('img');
+      wheatImg.src = wheatSrc;
+      wheatImg.className = "iso-wheat";
+      wheatImg.style.left = coords.left + "px";
+      wheatImg.style.top = coords.top + "px";
+      wheatImg.style.zIndex = 20 + item.y; // Her zaman tarladan üstte, ama y'ye bağlı
+      gameArea.appendChild(wheatImg);
     }
   });
 }
