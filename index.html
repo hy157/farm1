@@ -80,7 +80,7 @@
     </div>
     <div class="status-bar" id="strawberry-bar">
       <img class="crop-icon" id="strawberry-icon" src="img/Strawberry.png" alt="Çilek">
-      <span id="strawberry-amount">0</span>
+      <span id="strawberry-amount">100</span>
     </div>
   </div>
   <div id="toolbar">
@@ -98,14 +98,12 @@
 </div>
 
 <script>
-// -- Ortak oyun alanı parametreleri --
 const VIRTUAL_W = 800, VIRTUAL_H = 1200;
 let scale = 1, offsetLeft = 0, offsetTop = 0;
 const tileW = 256, tileH = 172;
 const GRID_RADIUS = 7;
 const GRID_MIN = -GRID_RADIUS, GRID_MAX = GRID_RADIUS;
 
-// -- Buğday Değişkenleri --
 let money = 1000;
 let wheat = 100;
 let wheatPrice = 10;
@@ -114,31 +112,27 @@ const SILME_KAZANCI = 20;
 const MIN_WHEAT_PRICE = 10;
 const MAX_WHEAT_PRICE = 20;
 
-// -- Çilek Değişkenleri --
 let strawberryMoney = 1000;
-let strawberry = 0;
+// BAŞLANGIÇTA 100 ÇİLEK
+let strawberry = 100;
 let strawberryPrice = 20;
 const STRAWBERRY_MIN_PRICE = 20;
 const STRAWBERRY_MAX_PRICE = 30;
 
-// -- Oyunun iki ayrı alanı için state --
 let activePage = 'wheat'; // veya 'strawberry'
 let plots = [];
 let wheats = [];
 let handledCoords = new Set();
 
-// Çilek alanı için ayrı state:
 let strawberryPlots = [];
 let strawberryPlants = [];
 let strawberryHandledCoords = new Set();
 
-// -- Ortak DOM elemanları (her iki ekranın id'leri farklı) --
 const wheatPage = document.getElementById('wheat-page');
 const strawberryPage = document.getElementById('strawberry-page');
 const gameArea = document.getElementById('game-area');
 const strawberryArea = document.getElementById('strawberry-area');
 
-// -- Oyun başlatma --
 function showPage(page) {
   wheatPage.style.display = (page === 'wheat') ? 'block' : 'none';
   strawberryPage.style.display = (page === 'strawberry') ? 'block' : 'none';
@@ -148,7 +142,6 @@ function showPage(page) {
   else redrawAllStrawberryPlots();
 }
 
-// --- Responsive ölçekleme ---
 function updateGameAreaTransform() {
   let ww = window.innerWidth, wh = window.innerHeight;
   scale = Math.min(ww / VIRTUAL_W, wh * 0.98 / VIRTUAL_H);
@@ -178,7 +171,6 @@ function checkOrientation() {
 }
 checkOrientation();
 
-// -- Koordinat dönüşümleri --
 function screenToGame(x, y) {
   return {
     x: (x - offsetLeft) / scale,
@@ -315,7 +307,6 @@ function setToolMode(mode) {
   else if (mode === "remove") { isRemove = true;}
   else if (mode === "wheat") { isWheat = true;}
   else if (mode === "sickle") { isSickle = true;}
-  // Buton classlarını güncelle
   document.getElementById('pickaxe-btn').classList.toggle('active', isPickaxe);
   document.getElementById('remove-btn').classList.toggle('active', isRemove);
   document.getElementById('wheat-btn').classList.toggle('active', isWheat);
@@ -422,7 +413,6 @@ function removePlot(x, y, mousePos = null) {
   return false;
 }
 
-// Mouse ve touch olayları (Buğday sayfası)
 function handleActionAtMouse(e) {
   if (activePage !== 'wheat') return;
   let clientX, clientY;
@@ -469,7 +459,7 @@ function redrawAllPlots() {
     const coords = isoToScreen(item.x, item.y);
     if (item.type === 'plot') {
       const img = document.createElement('img');
-      img.src = "img/Plot.png";
+      img.src = "img/Plot.webp";
       img.className = "iso-plot";
       img.style.left = coords.left + "px";
       img.style.top = coords.top + "px";
@@ -481,9 +471,9 @@ function redrawAllPlots() {
       const w = item.wheat;
       const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
       const remain = Math.max(0, 6 - elapsed);
-      if (remain > 3) wheatSrc = "img/Plot1.png";
-      else if (remain > 0) wheatSrc = "img/Plot2.png";
-      else { wheatSrc = "img/Plot3.png"; w.ready = true; }
+      if (remain > 3) wheatSrc = "img/Plot1.webp";
+      else if (remain > 0) wheatSrc = "img/Plot2.webp";
+      else { wheatSrc = "img/Plot3.webp"; w.ready = true; }
       const wheatImg = document.createElement('img');
       wheatImg.src = wheatSrc;
       wheatImg.className = "iso-crop";
@@ -702,7 +692,7 @@ function redrawAllStrawberryPlots() {
     const coords = isoToScreen(item.x, item.y);
     if (item.type === 'plot') {
       const img = document.createElement('img');
-      img.src = "img/Plot.png";
+      img.src = "img/Plot.webp";
       img.className = "iso-plot";
       img.style.left = coords.left + "px";
       img.style.top = coords.top + "px";
@@ -714,9 +704,9 @@ function redrawAllStrawberryPlots() {
       const p = item.plant;
       const elapsed = Math.floor((Date.now() - p.plantedAt) / 1000);
       const remain = Math.max(0, 12 - elapsed);
-      if (remain > 8) src = "img/Plot1.png";
-      else if (remain > 0) src = "img/PlotS2.png";
-      else { src = "img/PlotS3.png"; p.ready = true; }
+      if (remain > 8) src = "img/Plot1.webp";
+      else if (remain > 0) src = "img/PlotS2.webp";
+      else { src = "img/PlotS3.webp"; p.ready = true; }
       const img = document.createElement('img');
       img.src = src;
       img.className = "iso-crop";
@@ -747,7 +737,7 @@ goStrawberryBtn.addEventListener('click', ()=>{
     updateMoneyBar('lose');
     updateWheatBar();
     strawberryMoney = money;
-    strawberry = 0;
+    strawberry = 100; // ÇİLEK BAŞLANGICI 100
     showPage('strawberry');
     updateStrawberryMoneyBar();
     updateStrawberryBar();
@@ -756,7 +746,6 @@ goStrawberryBtn.addEventListener('click', ()=>{
   }
 });
 goWheatBtn.addEventListener('click', ()=>{
-  // Buğday sayfasına dön
   showPage('wheat');
   updateMoneyBar();
   updateWheatBar();
