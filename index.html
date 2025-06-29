@@ -246,6 +246,7 @@ function screenToIso(screenX, screenY) {
   iy = Math.max(GRID_MIN, Math.min(GRID_MAX, iy));
   return {x: ix, y: iy};
 }
+
 // --- Buğday ve çilek geçiş butonları ---
 const goStrawberryBtn = document.getElementById('go-strawberry-btn');
 const goWheatBtn = document.getElementById('go-wheat-btn');
@@ -350,6 +351,7 @@ setInterval(() => {
   strawberryPrice = Math.floor(Math.random() * (STRAWBERRY_MAX_PRICE - STRAWBERRY_MIN_PRICE + 1)) + STRAWBERRY_MIN_PRICE;
   updateStrawberryPriceBar('gain');
 }, 1000);
+
 // Animasyonlar
 function animateMoneyFloat({amount, from, to}) {
   const emoji = '💰';
@@ -458,6 +460,7 @@ document.getElementById('strawberry-price-bar').addEventListener('click', () => 
     updateStrawberryPriceBar('sell');
   }, 450);
 });
+
 // --- Buton Kontrolleri ---
 let isPickaxe = false, isRemove = false, isWheat = false, isSickle = false;
 let isStrawberryPickaxe = false, isStrawberryRemove = false, isStrawberry = false, isStrawberrySickle = false;
@@ -904,8 +907,6 @@ showPage('wheat');
 updateGoStrawberryBtn();
 window.addEventListener('resize', checkOrientation);
 window.addEventListener('orientationchange', checkOrientation);
-
-
 </script>
 </body>
 </html>
