@@ -294,8 +294,10 @@ function isoToScreen(x, y) {
     top: centerY + (x + y) * (tileH / 2)
   };
 }
+// ==== BU FONKSİYONU DÜZENLEDİK ====
 function screenToIso(screenX, screenY) {
-  const {x, y} = screenToGame(screenX, screenY);
+  // Yarı tile kadar yukarı kaydır, dokunulan yere merkez gelsin!
+  const {x, y} = screenToGame(screenX, screenY - tileH / 2);
   const centerX = VIRTUAL_W / 2;
   const centerY = 350;
   const mouseX = x - centerX;
@@ -304,6 +306,8 @@ function screenToIso(screenX, screenY) {
   let iy = Math.round((mouseY / (tileH / 2) - mouseX / (tileW / 2)) / 2);
   return {x: ix, y: iy};
 }
+// ==== DÜZENLEME SONU ====
+
 function plotId(x, y) { return `plot-${x}-${y}`; }
 function updateMoneyBar(type) {
   moneyAmount.textContent = money;
