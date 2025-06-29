@@ -32,7 +32,6 @@
     #rotate-warning { display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:9999; background:#222c; color:#fff; font-size:7vw; text-align:center; justify-content:center; align-items:center; flex-direction:column; padding:0 5vw;}
     #rotate-warning.visible { display:flex;}
     #rotate-warning .icon { font-size:12vw; margin-bottom:3vw;}
-    /* Geçiş butonları */
     #go-strawberry-btn, #go-wheat-btn {
       position:fixed;
       right:4vw;
@@ -145,12 +144,112 @@
 </div>
 
 <script>
-// ...Tüm kod yukarıda verdiğimle aynı kalsın...
+// Ayarlar ve global değişkenler
+const VIRTUAL_W = 800, VIRTUAL_H = 1200;
+let scale = 1, offsetLeft = 0, offsetTop = 0;
+const tileW = 256, tileH = 172;
+const GRID_RADIUS = 7;
+const GRID_MIN = -GRID_RADIUS, GRID_MAX = GRID_RADIUS;
 
-// DEĞİŞİKLİK: Bu satırı ekle
+let money = 1000;
+let wheat = 100;
+let wheatPrice = 10;
+const EKIM_MALIYET = 50;
+const SILME_KAZANCI = 20;
+const MIN_WHEAT_PRICE = 10;
+const MAX_WHEAT_PRICE = 20;
+
+let strawberryMoney = 1000;
+let strawberry = 100;
+let strawberryPrice = 20;
+const STRAWBERRY_MIN_PRICE = 20;
+const STRAWBERRY_MAX_PRICE = 30;
+
+let activePage = 'wheat';
+let plots = [];
+let wheats = [];
+let handledCoords = new Set();
+
+let strawberryPlots = [];
+let strawberryPlants = [];
+let strawberryHandledCoords = new Set();
+
 let strawberryPageUnlocked = false;
 
-// Çilek tarlasına geçiş kodu:
+// Sayfa geçiş
+const wheatPage = document.getElementById('wheat-page');
+const strawberryPage = document.getElementById('strawberry-page');
+const gameArea = document.getElementById('game-area');
+const strawberryArea = document.getElementById('strawberry-area');
+
+function showPage(page) {
+  wheatPage.style.display = (page === 'wheat') ? 'block' : 'none';
+  strawberryPage.style.display = (page === 'strawberry') ? 'block' : 'none';
+  activePage = page;
+  updateGameAreaTransform();
+  if(page === 'wheat') redrawAllPlots();
+  else redrawAllStrawberryPlots();
+}
+
+function updateGameAreaTransform() {
+  let ww = window.innerWidth, wh = window.innerHeight;
+  scale = Math.min(ww / VIRTUAL_W, wh * 0.98 / VIRTUAL_H);
+  offsetLeft = (ww - VIRTUAL_W * scale) / 2;
+  offsetTop = ((wh * 0.98) - VIRTUAL_H * scale) / 2;
+  (activePage === 'wheat' ? gameArea : strawberryArea).style.transform = `scale(${scale})`;
+  (activePage === 'wheat' ? gameArea : strawberryArea).style.left = `${offsetLeft / scale}px`;
+  (activePage === 'wheat' ? gameArea : strawberryArea).style.top = `${offsetTop / scale}px`;
+  (activePage === 'wheat' ? gameArea : strawberryArea).style.transformOrigin = '0 0';
+}
+updateGameAreaTransform();
+window.addEventListener('resize', () => { updateGameAreaTransform(); if(activePage==='wheat') redrawAllPlots(); else redrawAllStrawberryPlots(); });
+window.addEventListener('orientationchange', () => { setTimeout(() => { checkOrientation(); updateGameAreaTransform(); if(activePage==='wheat') redrawAllPlots(); else redrawAllStrawberryPlots(); }, 350); });
+
+function checkOrientation() {
+  const isPortrait = window.innerHeight >= window.innerWidth;
+  const warning = document.getElementById('rotate-warning');
+  if(isPortrait){
+    warning.classList.remove('visible');
+    wheatPage.style.display = (activePage === 'wheat') ? '' : 'none';
+    strawberryPage.style.display = (activePage === 'strawberry') ? '' : 'none';
+  } else {
+    warning.classList.add('visible');
+    wheatPage.style.display = 'none';
+    strawberryPage.style.display = 'none';
+  }
+}
+checkOrientation();
+
+function screenToGame(x, y) {
+  return {
+    x: (x - offsetLeft) / scale,
+    y: (y - offsetTop) / scale
+  };
+}
+function isoToScreen(x, y) {
+  const centerX = VIRTUAL_W / 2;
+  const centerY = 350;
+  return {
+    left: centerX + (x - y) * (tileW / 2),
+    top: centerY + (x + y) * (tileH / 2)
+  };
+}
+function screenToIso(screenX, screenY) {
+  const {x, y} = screenToGame(screenX, screenY - tileH / 2);
+  const centerX = VIRTUAL_W / 2;
+  const centerY = 350;
+  const mouseX = x - centerX;
+  const mouseY = y - centerY;
+  let ix = Math.round((mouseY / (tileH / 2) + mouseX / (tileW / 2)) / 2);
+  let iy = Math.round((mouseY / (tileH / 2) - mouseX / (tileW / 2)) / 2);
+  ix = Math.max(GRID_MIN, Math.min(GRID_MAX, ix));
+  iy = Math.max(GRID_MIN, Math.min(GRID_MAX, iy));
+  return {x: ix, y: iy};
+}
+// --- Buğday ve çilek geçiş butonları ---
+const goStrawberryBtn = document.getElementById('go-strawberry-btn');
+const goWheatBtn = document.getElementById('go-wheat-btn');
+
 goStrawberryBtn.addEventListener('click', ()=>{
   if(!strawberryPageUnlocked && money >= 10000 && wheat >= 300) {
     money -= 10000;
@@ -159,7 +258,9 @@ goStrawberryBtn.addEventListener('click', ()=>{
     updateWheatBar();
     strawberryMoney = money;
     strawberry = 100;
-    strawberryPageUnlocked = true; // Artık hep geçebilirsin!
+    strawberryPlots = [];
+    strawberryPlants = [];
+    strawberryPageUnlocked = true;
     showPage('strawberry');
     updateStrawberryMoneyBar();
     updateStrawberryBar();
@@ -167,7 +268,6 @@ goStrawberryBtn.addEventListener('click', ()=>{
     redrawAllStrawberryPlots();
     updateGoStrawberryBtn();
   }
-  // Eğer zaten açıldıysa direkt geç
   else if(strawberryPageUnlocked) {
     strawberryMoney = money;
     showPage('strawberry');
@@ -179,7 +279,16 @@ goStrawberryBtn.addEventListener('click', ()=>{
   }
 });
 
-// Buğdaya dönünce butonu her zaman aktif bırak:
+goWheatBtn.addEventListener('click', ()=>{
+  money = strawberryMoney;
+  showPage('wheat');
+  updateMoneyBar();
+  updateWheatBar();
+  updateWheatPriceBar();
+  redrawAllPlots();
+  updateGoStrawberryBtn();
+});
+
 function updateGoStrawberryBtn() {
   if(strawberryPageUnlocked || (money >= 10000 && wheat >= 300)) {
     goStrawberryBtn.classList.remove('disabled-btn');
@@ -190,18 +299,613 @@ function updateGoStrawberryBtn() {
   }
 }
 
-goWheatBtn.addEventListener('click', ()=>{
-  // Geri dönüşte gereksinim yok, direkt geç!
-  money = strawberryMoney;
-  showPage('wheat');
-  updateMoneyBar();
+// --- Bar ve fiyat güncelleyiciler ---
+function updateMoneyBar(type) {
+  document.getElementById('money-amount').textContent = money;
+  const bar = document.getElementById('money-bar');
+  bar.classList.remove('money-gain', 'money-lose');
+  void bar.offsetWidth;
+  if (type === 'lose') bar.classList.add('money-lose');
+  else if (type === 'gain') bar.classList.add('money-gain');
+  setTimeout(() => bar.classList.remove('money-gain', 'money-lose'), 350);
+}
+function updateWheatBar() {
+  document.getElementById('wheat-amount').textContent = wheat;
+}
+function updateWheatPriceBar(animType) {
+  const el = document.getElementById('wheat-price-amount');
+  el.textContent = wheatPrice;
+  const bar = document.getElementById('wheat-price-bar');
+  bar.classList.remove('price-gain', 'price-sell');
+  void bar.offsetWidth;
+  if(animType === 'gain') { bar.classList.add('price-gain'); setTimeout(()=>bar.classList.remove('price-gain'), 350);}
+  if(animType === 'sell') { bar.classList.add('price-sell'); setTimeout(()=>bar.classList.remove('price-sell'), 450);}
+}
+function updateStrawberryMoneyBar(type) {
+  document.getElementById('strawberry-money-amount').textContent = strawberryMoney;
+  const bar = document.getElementById('strawberry-money-bar');
+  bar.classList.remove('money-gain', 'money-lose');
+  void bar.offsetWidth;
+  if (type === 'lose') bar.classList.add('money-lose');
+  else if (type === 'gain') bar.classList.add('money-gain');
+  setTimeout(() => bar.classList.remove('money-gain', 'money-lose'), 350);
+}
+function updateStrawberryBar() {
+  document.getElementById('strawberry-amount').textContent = strawberry;
+}
+function updateStrawberryPriceBar(animType) {
+  const el = document.getElementById('strawberry-price-amount');
+  el.textContent = strawberryPrice;
+  const bar = document.getElementById('strawberry-price-bar');
+  bar.classList.remove('price-gain', 'price-sell');
+  void bar.offsetWidth;
+  if(animType === 'gain') { bar.classList.add('price-gain'); setTimeout(()=>bar.classList.remove('price-gain'), 350);}
+  if(animType === 'sell') { bar.classList.add('price-sell'); setTimeout(()=>bar.classList.remove('price-sell'), 450);}
+}
+
+// --- Fiyatlar değişsin ---
+setInterval(() => {
+  wheatPrice = Math.floor(Math.random() * (MAX_WHEAT_PRICE - MIN_WHEAT_PRICE + 1)) + MIN_WHEAT_PRICE;
+  updateWheatPriceBar('gain');
+  strawberryPrice = Math.floor(Math.random() * (STRAWBERRY_MAX_PRICE - STRAWBERRY_MIN_PRICE + 1)) + STRAWBERRY_MIN_PRICE;
+  updateStrawberryPriceBar('gain');
+}, 1000);
+// Animasyonlar
+function animateMoneyFloat({amount, from, to}) {
+  const emoji = '💰';
+  const sign = amount > 0 ? '+' : '';
+  const colorClass = amount > 0 ? 'money-gain' : 'money-lose';
+  const float = document.createElement('span');
+  float.className = `money-float ${colorClass}`;
+  float.textContent = `${sign}${amount} ${emoji}`;
+  float.style.left = from.x + 'px';
+  float.style.top = from.y + 'px';
+  float.style.opacity = 1;
+  document.body.appendChild(float);
+  float.animate([
+    {transform: 'translate(0,0) scale(1)',opacity:1},
+    {transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(1.4)`,opacity:1,offset:0.8},
+    {transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(0.7)`,opacity:0}
+  ], {duration: 700,easing:'cubic-bezier(.57,.11,.82,1.39)'});
+  setTimeout(() => { float.remove(); }, 750);
+}
+function animateProductFly({from, to, count=1, imgSrc}) {
+  for (let i = 0; i < count; i++) {
+    const icon = document.createElement('img');
+    icon.src = imgSrc;
+    icon.style.position = 'absolute';
+    icon.style.left = from.x + 'px';
+    icon.style.top = from.y + 'px';
+    icon.style.width = '96px';
+    icon.style.height = '96px';
+    icon.style.pointerEvents = 'none';
+    icon.style.opacity = 1;
+    icon.style.zIndex = 100;
+    icon.style.transition = 'none';
+    document.body.appendChild(icon);
+    const startOffsetX = (Math.random()-0.5)*16;
+    const startOffsetY = (Math.random()-0.5)*16;
+    icon.style.transform = `translate(${startOffsetX}px,${startOffsetY}px) scale(1)`;
+    setTimeout(() => {
+      icon.animate([
+        { transform: `translate(${startOffsetX}px,${startOffsetY}px) scale(1)`, opacity: 1 },
+        { transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(1.4)`, opacity: 1, offset: 0.7 },
+        { transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(0.7)`, opacity: 0 }
+      ], { duration: 850 + i*80, easing: 'cubic-bezier(.45,1.2,.49,1)' });
+      setTimeout(() => icon.remove(), 900 + i*80);
+    }, i * 100);
+  }
+}
+
+// --- Satış Butonları ---
+document.getElementById('wheat-price-bar').addEventListener('click', () => {
+  const satilacak = Math.max(0, wheat - 10);
+  if (satilacak === 0) return;
+  const kazanc = satilacak * wheatPrice;
+  const wheatBarRect = document.getElementById('wheat-bar').getBoundingClientRect();
+  const priceBarRect = document.getElementById('wheat-price-bar').getBoundingClientRect();
+  animateProductFly({
+    from: { x: wheatBarRect.left + wheatBarRect.width/2 - 32, y: wheatBarRect.top + wheatBarRect.height/2 - 32 },
+    to:   { x: priceBarRect.left + priceBarRect.width/2 - 32, y: priceBarRect.top + priceBarRect.height/2 - 32 },
+    count: Math.min(satilacak, 7),
+    imgSrc: "img/wheat.webp"
+  });
+  setTimeout(() => {
+    const moneyBarRect = document.getElementById('money-bar').getBoundingClientRect();
+    animateMoneyFloat({
+      amount: kazanc,
+      from: { x: priceBarRect.left + priceBarRect.width/2 - 12, y: priceBarRect.top + priceBarRect.height/2 - 12 },
+      to:   { x: moneyBarRect.left + moneyBarRect.width/2 - 12, y: moneyBarRect.top + moneyBarRect.height/2 - 12 }
+    });
+    soundCoin.currentTime = 0; soundCoin.play();
+  }, 300);
+  wheat -= satilacak;
   updateWheatBar();
-  updateWheatPriceBar();
-  redrawAllPlots();
-  updateGoStrawberryBtn();
+  setTimeout(() => {
+    money += kazanc;
+    updateMoneyBar('gain');
+    updateWheatPriceBar('sell');
+    updateGoStrawberryBtn();
+  }, 450);
 });
 
-// ...Geri kalan kodun tamamı olduğu gibi devam etsin...
+document.getElementById('strawberry-price-bar').addEventListener('click', () => {
+  const satilacak = Math.max(0, strawberry - 10);
+  if (satilacak === 0) return;
+  const kazanc = satilacak * strawberryPrice;
+  const strawberryBarRect = document.getElementById('strawberry-bar').getBoundingClientRect();
+  const priceBarRect = document.getElementById('strawberry-price-bar').getBoundingClientRect();
+  animateProductFly({
+    from: { x: strawberryBarRect.left + strawberryBarRect.width/2 - 32, y: strawberryBarRect.top + strawberryBarRect.height/2 - 32 },
+    to:   { x: priceBarRect.left + priceBarRect.width/2 - 32, y: priceBarRect.top + priceBarRect.height/2 - 32 },
+    count: Math.min(satilacak, 7),
+    imgSrc: "img/Strawberry.png"
+  });
+  setTimeout(() => {
+    const moneyBarRect = document.getElementById('strawberry-money-bar').getBoundingClientRect();
+    animateMoneyFloat({
+      amount: kazanc,
+      from: { x: priceBarRect.left + priceBarRect.width/2 - 12, y: priceBarRect.top + priceBarRect.height/2 - 12 },
+      to:   { x: moneyBarRect.left + moneyBarRect.width/2 - 12, y: moneyBarRect.top + moneyBarRect.height/2 - 12 }
+    });
+    soundCoin.currentTime = 0; soundCoin.play();
+  }, 300);
+  strawberry -= satilacak;
+  updateStrawberryBar();
+  setTimeout(() => {
+    strawberryMoney += kazanc;
+    updateStrawberryMoneyBar('gain');
+    updateStrawberryPriceBar('sell');
+  }, 450);
+});
+// --- Buton Kontrolleri ---
+let isPickaxe = false, isRemove = false, isWheat = false, isSickle = false;
+let isStrawberryPickaxe = false, isStrawberryRemove = false, isStrawberry = false, isStrawberrySickle = false;
+let isMouseDown = false;
+
+// Wheat butonları
+document.getElementById('pickaxe-btn').addEventListener('click', () => setToolMode("pickaxe"));
+document.getElementById('remove-btn').addEventListener('click', () => setToolMode("remove"));
+document.getElementById('wheat-btn').addEventListener('click', () => setToolMode("wheat"));
+document.getElementById('sickle-btn').addEventListener('click', () => setToolMode("sickle"));
+
+// Strawberry butonları
+document.getElementById('strawberry-pickaxe-btn').addEventListener('click', () => setStrawberryToolMode("pickaxe"));
+document.getElementById('strawberry-remove-btn').addEventListener('click', () => setStrawberryToolMode("remove"));
+document.getElementById('strawberry-btn').addEventListener('click', () => setStrawberryToolMode("strawberry"));
+document.getElementById('strawberry-sickle-btn').addEventListener('click', () => setStrawberryToolMode("sickle"));
+
+function setToolMode(mode) {
+  if (mode === "pickaxe") {
+    isPickaxe = !isPickaxe;
+    if (isPickaxe) { isRemove = false; isWheat = false; isSickle = false; }
+  } else if (mode === "remove") {
+    isRemove = !isRemove;
+    if (isRemove) { isPickaxe = false; isWheat = false; isSickle = false; }
+  } else if (mode === "wheat") {
+    isWheat = !isWheat;
+    if (isWheat) { isPickaxe = false; isRemove = false; isSickle = false; }
+  } else if (mode === "sickle") {
+    isSickle = !isSickle;
+    if (isSickle) { isPickaxe = false; isRemove = false; isWheat = false; }
+  }
+  document.getElementById('pickaxe-btn').classList.toggle('active', isPickaxe);
+  document.getElementById('remove-btn').classList.toggle('active', isRemove);
+  document.getElementById('wheat-btn').classList.toggle('active', isWheat);
+  document.getElementById('sickle-btn').classList.toggle('active', isSickle);
+  gameArea.style.cursor = (isPickaxe || isRemove || isWheat || isSickle) ? "pointer" : "default";
+}
+
+function setStrawberryToolMode(mode) {
+  if (mode === "pickaxe") {
+    isStrawberryPickaxe = !isStrawberryPickaxe;
+    if (isStrawberryPickaxe) { isStrawberryRemove = false; isStrawberry = false; isStrawberrySickle = false; }
+  } else if (mode === "remove") {
+    isStrawberryRemove = !isStrawberryRemove;
+    if (isStrawberryRemove) { isStrawberryPickaxe = false; isStrawberry = false; isStrawberrySickle = false; }
+  } else if (mode === "strawberry") {
+    isStrawberry = !isStrawberry;
+    if (isStrawberry) { isStrawberryPickaxe = false; isStrawberryRemove = false; isStrawberrySickle = false; }
+  } else if (mode === "sickle") {
+    isStrawberrySickle = !isStrawberrySickle;
+    if (isStrawberrySickle) { isStrawberryPickaxe = false; isStrawberryRemove = false; isStrawberry = false; }
+  }
+  document.getElementById('strawberry-pickaxe-btn').classList.toggle('active', isStrawberryPickaxe);
+  document.getElementById('strawberry-remove-btn').classList.toggle('active', isStrawberryRemove);
+  document.getElementById('strawberry-btn').classList.toggle('active', isStrawberry);
+  document.getElementById('strawberry-sickle-btn').classList.toggle('active', isStrawberrySickle);
+  strawberryArea.style.cursor = (isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle) ? "pointer" : "default";
+}
+
+// --- Buğday Oyun Alanı Olayları ---
+gameArea.addEventListener('mousedown', (e) => {
+  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
+  isMouseDown = true;
+  handledCoords.clear();
+  handleActionAtMouse(e);
+});
+gameArea.addEventListener('mousemove', (e) => {
+  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
+    handleActionAtMouse(e);
+  }
+});
+document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
+gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
+
+gameArea.addEventListener('touchstart', (e) => {
+  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
+  e.preventDefault();
+  isMouseDown = true;
+  handledCoords.clear();
+  handleActionAtMouse(e);
+  setTimeout(() => handledCoords.clear(), 80);
+});
+gameArea.addEventListener('touchend', (e) => {
+  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
+  handleActionAtMouse(e);
+  isMouseDown = false;
+  handledCoords.clear();
+});
+gameArea.addEventListener('touchmove', (e) => {
+  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
+    handleActionAtMouse(e);
+  }
+});
+gameArea.addEventListener('touchcancel', () => { isMouseDown = false; handledCoords.clear(); });
+document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+function handleActionAtMouse(e) {
+  let clientX, clientY;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX; clientY = e.clientY;
+  }
+  const { x, y } = screenToIso(clientX, clientY);
+  const key = `${x},${y}`;
+  if (handledCoords.has(key)) return;
+  handledCoords.add(key);
+  const mousePos = {x: clientX, y: clientY};
+  if (isPickaxe) addPlot(x, y, mousePos);
+  if (isRemove) removePlot(x, y, mousePos);
+  if (isWheat) addWheat(x, y, mousePos);
+  if (isSickle) harvestWheat(x, y);
+}
+
+// --- Buğday Tarla Fonksiyonları ---
+function addPlot(x, y, mousePos = null) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  if (plots.find(p => p.x === x && p.y === y)) return false;
+  if (money < EKIM_MALIYET) return false;
+  plots.push({x, y});
+  money -= EKIM_MALIYET;
+  updateMoneyBar('lose');
+  redrawAllPlots();
+  if (mousePos) {
+    const barRect = document.getElementById('money-bar').getBoundingClientRect();
+    const from = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
+    animateMoneyFloat({ amount: -EKIM_MALIYET, from: from, to: mousePos });
+    soundPay.currentTime = 0; soundPay.play();
+  }
+  updateGoStrawberryBtn();
+  return true;
+}
+function addWheat(x, y, clickPos=null) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  if (!plots.find(p => p.x === x && p.y === y)) return false;
+  if (wheats.find(w => w.x === x && w.y === y)) return false;
+  if (wheat < 1) return false;
+  const barRect = document.getElementById('wheat-bar').getBoundingClientRect();
+  const coords = isoToScreen(x, y);
+  const plotCenter = { x: coords.left, y: coords.top };
+  const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
+  animateProductFly({ from: barPos, to: plotCenter, count: 1, imgSrc: "img/wheat.webp" });
+  wheat--;
+  updateWheatBar();
+  const now = Date.now();
+  let wheatObj = { x, y, plantedAt: now, ready: false, timerInterval: null, harvested: false };
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now() - wheatObj.plantedAt) / 1000);
+    const remain = Math.max(0, 6 - elapsed);
+    if (wheatObj.harvested) return;
+    if (remain <= 0) {
+      wheatObj.ready = true;
+      clearInterval(wheatObj.timerInterval);
+      redrawAllPlots();
+    } else {
+      redrawAllPlots();
+    }
+  }
+  updateTimer();
+  wheatObj.timerInterval = setInterval(updateTimer, 400);
+  wheats.push(wheatObj);
+  redrawAllPlots();
+  return true;
+}
+function harvestWheat(x, y) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  const wheatObj = wheats.find(w => w.x === x && w.y === y);
+  if (!wheatObj || !wheatObj.ready || wheatObj.harvested) return false;
+  wheatObj.harvested = true;
+  if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
+  const coords = isoToScreen(x, y);
+  const plotRect = { left: coords.left - 128, top: coords.top - 86, width: 256, height: 172 };
+  const barRect = document.getElementById('wheat-bar').getBoundingClientRect();
+  const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
+  const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
+  animateProductFly({from, to, count: 4, imgSrc: "img/wheat.webp"});
+  wheats = wheats.filter(w => !(w.x === x && w.y === y));
+  setTimeout(() => { wheat += 4; updateWheatBar(); redrawAllPlots(); }, 500);
+  redrawAllPlots();
+  return true;
+}
+function removePlot(x, y, mousePos = null) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  const idx = plots.findIndex(p => p.x === x && p.y === y);
+  if (idx !== -1) {
+    plots.splice(idx, 1);
+    const wheatIdx = wheats.findIndex(w => w.x === x && w.y === y);
+    if (wheatIdx !== -1) {
+      const wheatObj = wheats[wheatIdx];
+      if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
+      wheats.splice(wheatIdx, 1);
+    }
+    money += SILME_KAZANCI;
+    updateMoneyBar('gain');
+    redrawAllPlots();
+    if (mousePos) {
+      const barRect = document.getElementById('money-bar').getBoundingClientRect();
+      const to = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
+      animateMoneyFloat({ amount: SILME_KAZANCI, from: mousePos, to: to });
+      soundCoin.currentTime = 0; soundCoin.play();
+    }
+    updateGoStrawberryBtn();
+    return true;
+  }
+  return false;
+}
+
+// --- Çizim Buğday ---
+function redrawAllPlots() {
+  document.querySelectorAll('.iso-plot').forEach(el => el.remove());
+  document.querySelectorAll('.iso-crop').forEach(el => el.remove());
+  let items = [];
+  plots.forEach(plot => {items.push({type: 'plot', x: plot.x, y: plot.y});});
+  wheats.forEach(wheat => {
+    if (wheat.harvested) return;
+    items.push({type: 'wheat', x: wheat.x, y: wheat.y, wheat});
+  });
+  items.sort((a, b) => a.y - b.y || a.x - b.x);
+  items.forEach(item => {
+    const coords = isoToScreen(item.x, item.y);
+    if (item.type === 'plot') {
+      const img = document.createElement('img');
+      img.src = "img/Plot.webp";
+      img.className = "iso-plot";
+      img.style.left = coords.left + "px";
+      img.style.top = coords.top + "px";
+      img.style.zIndex = 10 + item.y;
+      gameArea.appendChild(img);
+    } else if (item.type === 'wheat') {
+      let wheatSrc;
+      const w = item.wheat;
+      const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
+      const remain = Math.max(0, 6 - elapsed);
+      if (remain > 3) wheatSrc = "img/Plot1.webp";
+      else if (remain > 0) wheatSrc = "img/Plot2.webp";
+      else { wheatSrc = "img/Plot3.webp"; w.ready = true; }
+      const wheatImg = document.createElement('img');
+      wheatImg.src = wheatSrc;
+      wheatImg.className = "iso-crop";
+      wheatImg.style.left = coords.left + "px";
+      wheatImg.style.top = coords.top + "px";
+      wheatImg.style.zIndex = 20 + item.y;
+      gameArea.appendChild(wheatImg);
+    }
+  });
+}
+
+// --- Çilek Alanı Oyun Olayları ---
+strawberryArea.addEventListener('mousedown', (e) => {
+  if (!(isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) return;
+  isMouseDown = true;
+  strawberryHandledCoords.clear();
+  handleStrawberryActionAtMouse(e);
+});
+strawberryArea.addEventListener('mousemove', (e) => {
+  if (isMouseDown && (isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) {
+    handleStrawberryActionAtMouse(e);
+  }
+});
+document.addEventListener('mouseup', () => { isMouseDown = false; strawberryHandledCoords.clear(); });
+strawberryArea.addEventListener('mouseleave', () => { isMouseDown = false; strawberryHandledCoords.clear(); });
+strawberryArea.addEventListener('touchstart', (e) => {
+  if (!(isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) return;
+  e.preventDefault();
+  isMouseDown = true;
+  strawberryHandledCoords.clear();
+  handleStrawberryActionAtMouse(e);
+  setTimeout(() => strawberryHandledCoords.clear(), 80);
+});
+strawberryArea.addEventListener('touchend', (e) => {
+  if (!(isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) return;
+  handleStrawberryActionAtMouse(e);
+  isMouseDown = false;
+  strawberryHandledCoords.clear();
+});
+strawberryArea.addEventListener('touchmove', (e) => {
+  if (isMouseDown && (isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) {
+    handleStrawberryActionAtMouse(e);
+  }
+});
+strawberryArea.addEventListener('touchcancel', () => { isMouseDown = false; strawberryHandledCoords.clear(); });
+
+function handleStrawberryActionAtMouse(e) {
+  let clientX, clientY;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX; clientY = e.clientY;
+  }
+  const { x, y } = screenToIso(clientX, clientY);
+  const key = `${x},${y}`;
+  if (strawberryHandledCoords.has(key)) return;
+  strawberryHandledCoords.add(key);
+  const mousePos = {x: clientX, y: clientY};
+  if (isStrawberryPickaxe) addStrawberryPlot(x, y, mousePos);
+  if (isStrawberryRemove) removeStrawberryPlot(x, y, mousePos);
+  if (isStrawberry) addStrawberry(x, y, mousePos);
+  if (isStrawberrySickle) harvestStrawberry(x, y);
+}
+
+// --- Çilek Tarla Fonksiyonları ---
+function addStrawberryPlot(x, y, mousePos = null) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  if (strawberryPlots.find(p => p.x === x && p.y === y)) return false;
+  if (strawberryMoney < EKIM_MALIYET) return false;
+  strawberryPlots.push({x, y});
+  strawberryMoney -= EKIM_MALIYET;
+  updateStrawberryMoneyBar('lose');
+  redrawAllStrawberryPlots();
+  if (mousePos) {
+    const barRect = document.getElementById('strawberry-money-bar').getBoundingClientRect();
+    const from = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
+    animateMoneyFloat({ amount: -EKIM_MALIYET, from: from, to: mousePos });
+    soundPay.currentTime = 0; soundPay.play();
+  }
+  return true;
+}
+function addStrawberry(x, y, clickPos=null) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  if (!strawberryPlots.find(p => p.x === x && p.y === y)) return false;
+  if (strawberryPlants.find(w => w.x === x && w.y === y)) return false;
+  if (strawberry < 1) return false;
+  const barRect = document.getElementById('strawberry-bar').getBoundingClientRect();
+  const coords = isoToScreen(x, y);
+  const plotCenter = { x: coords.left, y: coords.top };
+  const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
+  animateProductFly({ from: barPos, to: plotCenter, count: 1, imgSrc: "img/Strawberry.png" });
+  strawberry--;
+  updateStrawberryBar();
+  const now = Date.now();
+  let plantObj = { x, y, plantedAt: now, ready: false, timerInterval: null, harvested: false };
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now() - plantObj.plantedAt) / 1000);
+    const remain = Math.max(0, 12 - elapsed);
+    if (plantObj.harvested) return;
+    if (remain <= 0) {
+      plantObj.ready = true;
+      clearInterval(plantObj.timerInterval);
+      redrawAllStrawberryPlots();
+    } else {
+      redrawAllStrawberryPlots();
+    }
+  }
+  updateTimer();
+  plantObj.timerInterval = setInterval(updateTimer, 400);
+  strawberryPlants.push(plantObj);
+  redrawAllStrawberryPlots();
+  return true;
+}
+function harvestStrawberry(x, y) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  const plantObj = strawberryPlants.find(w => w.x === x && w.y === y);
+  if (!plantObj || !plantObj.ready || plantObj.harvested) return false;
+  plantObj.harvested = true;
+  if (plantObj.timerInterval) clearInterval(plantObj.timerInterval);
+  const coords = isoToScreen(x, y);
+  const plotRect = { left: coords.left - 128, top: coords.top - 86, width: 256, height: 172 };
+  const barRect = document.getElementById('strawberry-bar').getBoundingClientRect();
+  const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
+  const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
+  animateProductFly({from, to, count: 6, imgSrc: "img/Strawberry.png"});
+  strawberryPlants = strawberryPlants.filter(w => !(w.x === x && w.y === y));
+  setTimeout(() => { strawberry += 6; updateStrawberryBar(); redrawAllStrawberryPlots(); }, 500);
+  redrawAllStrawberryPlots();
+  return true;
+}
+function removeStrawberryPlot(x, y, mousePos = null) {
+  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
+  const idx = strawberryPlots.findIndex(p => p.x === x && p.y === y);
+  if (idx !== -1) {
+    strawberryPlots.splice(idx, 1);
+    const plantIdx = strawberryPlants.findIndex(w => w.x === x && w.y === y);
+    if (plantIdx !== -1) {
+      const plantObj = strawberryPlants[plantIdx];
+      if (plantObj.timerInterval) clearInterval(plantObj.timerInterval);
+      strawberryPlants.splice(plantIdx, 1);
+    }
+    strawberryMoney += SILME_KAZANCI;
+    updateStrawberryMoneyBar('gain');
+    redrawAllStrawberryPlots();
+    if (mousePos) {
+      const barRect = document.getElementById('strawberry-money-bar').getBoundingClientRect();
+      const to = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
+      animateMoneyFloat({ amount: SILME_KAZANCI, from: mousePos, to: to });
+      soundCoin.currentTime = 0; soundCoin.play();
+    }
+    return true;
+  }
+  return false;
+}
+
+// --- Çizim Çilek ---
+function redrawAllStrawberryPlots() {
+  document.querySelectorAll('.iso-plot').forEach(el => el.remove());
+  document.querySelectorAll('.iso-crop').forEach(el => el.remove());
+  let items = [];
+  strawberryPlots.forEach(plot => {items.push({type: 'plot', x: plot.x, y: plot.y});});
+  strawberryPlants.forEach(plant => {
+    if (plant.harvested) return;
+    items.push({type: 'plant', x: plant.x, y: plant.y, plant});
+  });
+  items.sort((a, b) => a.y - b.y || a.x - b.x);
+  items.forEach(item => {
+    const coords = isoToScreen(item.x, item.y);
+    if (item.type === 'plot') {
+      const img = document.createElement('img');
+      img.src = "img/Plot.webp";
+      img.className = "iso-plot";
+      img.style.left = coords.left + "px";
+      img.style.top = coords.top + "px";
+      img.style.zIndex = 10 + item.y;
+      strawberryArea.appendChild(img);
+    } else if (item.type === 'plant') {
+      let plantSrc;
+      const w = item.plant;
+      const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
+      const remain = Math.max(0, 12 - elapsed);
+      if (remain > 6) plantSrc = "img/Plot1.webp";
+      else if (remain > 0) plantSrc = "img/PlotS2.webp";
+      else { plantSrc = "img/PlotS3.webp"; w.ready = true; }
+      const plantImg = document.createElement('img');
+      plantImg.src = plantSrc;
+      plantImg.className = "iso-crop";
+      plantImg.style.left = coords.left + "px";
+      plantImg.style.top = coords.top + "px";
+      plantImg.style.zIndex = 20 + item.y;
+      strawberryArea.appendChild(plantImg);
+    }
+  });
+}
+
+// --- Başlangıç ve ikon yüklemeleri ---
+document.getElementById('wheat-icon').src = "img/wheat.webp";
+document.getElementById('wheat-price-icon').src = "img/wheat.webp";
+document.getElementById('strawberry-icon').src = "img/Strawberry.png";
+document.getElementById('strawberry-price-icon').src = "img/Strawberry.png";
+updateWheatBar();
+updateWheatPriceBar();
+updateStrawberryBar();
+updateStrawberryPriceBar();
+showPage('wheat');
+updateGoStrawberryBtn();
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
+
+
 </script>
 </body>
 </html>
