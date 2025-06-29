@@ -2,85 +2,82 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - 256x172 Tarlalar</title>
+  <title>Tarım Oyunu - Nizami Grid</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
-    html, body {width: 100vw; height: 100vh; margin: 0; padding: 0; overscroll-behavior: none; touch-action: manipulation; background: #4ecb36;}
-    body {font-family: 'Segoe UI', Arial, sans-serif; user-select: none; overflow: hidden;}
-    #game-container {position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; background: transparent; touch-action: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;}
-    #toolbar {position: absolute; bottom: 2vw; left: 0; width: 100vw; z-index: 10; display: flex; justify-content: center; align-items: flex-end; gap: 4vw; padding-bottom: 0.5rem; pointer-events: none;}
-    .tool-btn {font-size: 7vw; padding: 2vw 6vw; border: none; border-radius: 2.5vw; cursor: pointer; background: #fff9; margin: 0; box-shadow: 0 2px 8px #0002; outline: 3px solid transparent; transition: outline 0.2s, background 0.18s, transform 0.18s; min-width: 17vw; min-height: 10vw; pointer-events: auto; font-weight: bold; letter-spacing: 0.5px; -webkit-tap-highlight-color: transparent; touch-action: manipulation;}
-    .tool-btn.active {outline: 3px solid #13bb18; background: #baffc9; transform: scale(1.1);}
-    .status-bars {position: absolute; top: 1vw; left: 0; width: 100vw; z-index: 20; display: flex; justify-content: center; gap: 3vw; pointer-events: none; flex-wrap: wrap;}
-    #money-bar, #wheat-bar, #wheat-price-bar {background: #fff8; padding: 2vw 4vw 2vw 3vw; border-radius: 2vw; font-size: 5vw; box-shadow: 0 2px 8px #0002; display: flex; align-items: center; font-weight: bold; gap: 2vw; min-width: 18vw; min-height: 7vw; user-select: none; height: 10vw; pointer-events: auto; margin-bottom: 1vw;}
-    #wheat-price-bar {background: #ffe7aaee; border: 2px solid #ffb60066; margin-left: 0; margin-right: 0; cursor: pointer; transition: box-shadow 0.2s, background 0.2s; font-size: 5vw; min-width: 22vw;}
-    #wheat-price-bar:active {box-shadow: 0 2px 16px #ffa60055; background: #ffefb3;}
-    #money-bar.money-gain #money-amount {color: #09c517; transform: scale(1.15);}
-    #money-bar.money-lose #money-amount {color: #d62424; transform: scale(0.9);}
-    #wheat-price-bar.price-gain #wheat-price-amount {color: #1a9701; transform: scale(1.18);}
-    #wheat-price-bar.price-sell #wheat-price-amount {color: #ff1b1b; transform: scale(1.25);}
-    #money-amount, #wheat-amount {font-family: monospace; font-size: 5vw; transition: color 0.2s, transform 0.2s;}
-    #wheat-price-amount {font-family: monospace; font-size: 5vw; color: #c38307; transition: color 0.2s, transform 0.2s;}
-    #wheat-price-label {font-size: 3vw; color: #9a7e00; }
-    #wheat-icon, #wheat-price-icon {width: 8vw; height: 8vw; object-fit: contain; margin-right: 2vw; user-select: none; pointer-events: none;}
-    #game-area {position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; cursor: default; user-select: none; z-index: 2; touch-action: none; display: block;}
-    .iso-plot {position: absolute; width: 256px; height: 172px; transform: translate(-50%, -50%); pointer-events: none; transition: filter 0.1s; will-change: transform, filter, opacity; z-index: 2;}
-    .iso-wheat {position: absolute; width: 256px; height: 172px; pointer-events: none; left: 0; top: 0; transform: translate(-50%, -50%); z-index: 22; will-change: transform, filter, opacity;}
-    .fall-anim { animation: fall-in 0.4s cubic-bezier(.55,1.5,.58,1) both; }
-    @keyframes fall-in { from { opacity: 0; transform: translate(-50%, -130%) scaleY(1.2); filter: blur(2px);} 80% { opacity: 1; transform: translate(-50%, -56%) scaleY(0.95); filter: blur(0);} to { opacity: 1; transform: translate(-50%, -50%) scaleY(1); filter: blur(0);} }
-    .fly-anim { animation: fly-out 0.4s cubic-bezier(.7,-0.4,1,.57) both; z-index: 10; }
-    @keyframes fly-out { from { opacity: 1; transform: translate(-50%, -50%) scaleY(1); filter: blur(0);} 40% { opacity: 1; filter: blur(0.5px); transform: translate(-50%, -70%) scaleY(1.05);} to { opacity: 0; filter: blur(2px); transform: translate(-50%, -130%) scaleY(1.2);} }
-    .money-float {position: absolute; left: 0; top: 0; pointer-events: none; font-size: 4vw; font-weight: bold; opacity: 1; z-index: 99; transition: opacity 0.15s; will-change: transform, opacity; user-select: none;}
-    .money-gain { color: #11c90e; text-shadow: 0 1px 4px #fff8,0 0 2px #45ff42; }
-    .money-lose { color: #d62424; text-shadow: 0 1px 4px #fff8,0 0 2px #ff6961; }
-    ::-webkit-scrollbar { display: none; }
-    body, #game-area, #toolbar { -webkit-user-select: none; -webkit-touch-callout: none; }
-    body { overscroll-behavior-y: contain;}
-    #rotate-warning {display: none; position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 9999; background: #222c; color: #fff; font-size: 7vw; text-align: center; justify-content: center; align-items: center; flex-direction: column; padding: 0 5vw;}
-    #rotate-warning.visible {display: flex;}
-    #rotate-warning .icon {font-size: 12vw; margin-bottom: 3vw;}
+    html, body { width:100vw; height:100vh; margin:0; padding:0; overscroll-behavior:none; touch-action:manipulation; background: #4ecb36;}
+    body { font-family:'Segoe UI',Arial,sans-serif; user-select:none; overflow:hidden;}
+    #game-container { position:fixed; left:0; top:0; width:100vw; height:100vh; overflow:hidden; z-index:1; background:transparent; touch-action:none; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;}
+    #toolbar { position:absolute; bottom:2vw; left:0; width:100vw; z-index:10; display:flex; justify-content:center; align-items:flex-end; gap:4vw; padding-bottom:0.5rem; pointer-events:none;}
+    .tool-btn { font-size:7vw; padding:2vw 6vw; border:none; border-radius:2.5vw; cursor:pointer; background:#fff9; margin:0; box-shadow:0 2px 8px #0002; outline:3px solid transparent; transition:outline 0.2s, background 0.18s, transform 0.18s; min-width:17vw; min-height:10vw; pointer-events:auto; font-weight:bold; letter-spacing:0.5px; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
+    .tool-btn.active { outline:3px solid #13bb18; background:#baffc9; transform:scale(1.1);}
+    .status-bars { position:absolute; top:1vw; left:0; width:100vw; z-index:20; display:flex; justify-content:center; gap:3vw; pointer-events:none; flex-wrap:wrap;}
+    #money-bar, #wheat-bar, #wheat-price-bar { background:#fff8; padding:2vw 4vw 2vw 3vw; border-radius:2vw; font-size:5vw; box-shadow:0 2px 8px #0002; display:flex; align-items:center; font-weight:bold; gap:2vw; min-width:18vw; min-height:7vw; user-select:none; height:10vw; pointer-events:auto; margin-bottom:1vw;}
+    #wheat-price-bar { background:#ffe7aaee; border:2px solid #ffb60066; margin-left:0; margin-right:0; cursor:pointer; transition:box-shadow 0.2s, background 0.2s; font-size:5vw; min-width:22vw;}
+    #wheat-price-bar:active { box-shadow:0 2px 16px #ffa60055; background:#ffefb3;}
+    #money-bar.money-gain #money-amount { color:#09c517; transform:scale(1.15);}
+    #money-bar.money-lose #money-amount { color:#d62424; transform:scale(0.9);}
+    #wheat-price-bar.price-gain #wheat-price-amount { color:#1a9701; transform:scale(1.18);}
+    #wheat-price-bar.price-sell #wheat-price-amount { color:#ff1b1b; transform:scale(1.25);}
+    #money-amount, #wheat-amount { font-family:monospace; font-size:5vw; transition:color 0.2s, transform 0.2s;}
+    #wheat-price-amount { font-family:monospace; font-size:5vw; color:#c38307; transition:color 0.2s, transform 0.2s;}
+    #wheat-price-label { font-size:3vw; color:#9a7e00;}
+    #wheat-icon, #wheat-price-icon { width:8vw; height:8vw; object-fit:contain; margin-right:2vw; user-select:none; pointer-events:none;}
+    #game-area { position:absolute; left:0; top:0; width:100vw; height:100vh; cursor:default; user-select:none; z-index:2; touch-action:none; display:block;}
+    .iso-plot { position:absolute; width:256px; height:172px; transform:translate(-50%, -50%); pointer-events:none; transition:filter 0.1s; will-change:transform,filter,opacity; z-index:2;}
+    .iso-wheat { position:absolute; width:256px; height:172px; pointer-events:none; left:0; top:0; transform:translate(-50%, -50%); z-index:22; will-change:transform,filter,opacity;}
+    .money-float { position:absolute; left:0; top:0; pointer-events:none; font-size:4vw; font-weight:bold; opacity:1; z-index:99; transition:opacity 0.15s; will-change:transform, opacity; user-select:none;}
+    .money-gain { color:#11c90e; text-shadow:0 1px 4px #fff8,0 0 2px #45ff42;}
+    .money-lose { color:#d62424; text-shadow:0 1px 4px #fff8,0 0 2px #ff6961;}
+    ::-webkit-scrollbar { display:none; }
+    body, #game-area, #toolbar { -webkit-user-select:none; -webkit-touch-callout:none;}
+    body { overscroll-behavior-y:contain;}
+    #rotate-warning { display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:9999; background:#222c; color:#fff; font-size:7vw; text-align:center; justify-content:center; align-items:center; flex-direction:column; padding:0 5vw;}
+    #rotate-warning.visible { display:flex;}
+    #rotate-warning .icon { font-size:12vw; margin-bottom:3vw;}
   </style>
 </head>
 <body>
-  <audio id="sound-coin" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa4f88.mp3"></audio>
-  <audio id="sound-pay" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115bfae13d.mp3"></audio>
-  <div id="game-container">
-    <div id="game-area"></div>
+<audio id="sound-coin" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa4f88.mp3"></audio>
+<audio id="sound-pay" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115bfae13d.mp3"></audio>
+<div id="game-container"><div id="game-area"></div></div>
+<div class="status-bars">
+  <div id="money-bar"><span style="font-size: 1.2em;">💰</span> <span id="money-amount">1000</span></div>
+  <div id="wheat-price-bar" title="Elindeki fazla buğdayı sat">
+    <img id="wheat-price-icon" src="img/wheat.webp" alt="Buğday">
+    <span id="wheat-price-amount">10</span>
+    <span id="wheat-price-label"></span>
   </div>
-  <div class="status-bars">
-    <div id="money-bar"><span style="font-size: 1.2em;">💰</span> <span id="money-amount">1000</span></div>
-    <div id="wheat-price-bar" title="Elindeki fazla buğdayı sat">
-      <img id="wheat-price-icon" src="img/wheat.webp" alt="Buğday">
-      <span id="wheat-price-amount">10</span>
-      <span id="wheat-price-label"></span>
-    </div>
-    <div id="wheat-bar">
-      <img id="wheat-icon" src="img/wheat.webp" alt="Buğday">
-      <span id="wheat-amount">100</span>
-    </div>
+  <div id="wheat-bar">
+    <img id="wheat-icon" src="img/wheat.webp" alt="Buğday">
+    <span id="wheat-amount">100</span>
   </div>
-  <div id="toolbar">
-    <button id="pickaxe-btn" class="tool-btn" aria-label="Kaz">⛏️</button>
-    <button id="wheat-btn" class="tool-btn" aria-label="Ekin ek">🌾</button>
-    <button id="sickle-btn" class="tool-btn" aria-label="Biç">✂️</button>
-    <button id="remove-btn" class="tool-btn" aria-label="Sil">❌</button>
-  </div>
-  <div id="rotate-warning">
-    <div class="icon">🔄</div>
-    Lütfen ekranı <b>Dikey</b> moda çevirin<br>
-    <small>(Oyun sadece dikey oynanır)</small>
-  </div>
+</div>
+<div id="toolbar">
+  <button id="pickaxe-btn" class="tool-btn" aria-label="Kaz">⛏️</button>
+  <button id="wheat-btn" class="tool-btn" aria-label="Ekin ek">🌾</button>
+  <button id="sickle-btn" class="tool-btn" aria-label="Biç">✂️</button>
+  <button id="remove-btn" class="tool-btn" aria-label="Sil">❌</button>
+</div>
+<div id="rotate-warning">
+  <div class="icon">🔄</div>
+  Lütfen ekranı <b>Dikey</b> moda çevirin<br>
+  <small>(Oyun sadece dikey oynanır)</small>
+</div>
 <script>
 const VIRTUAL_W = 800, VIRTUAL_H = 1200;
 let scale = 1, offsetLeft = 0, offsetTop = 0;
 const tileW = 256, tileH = 172;
+
 const plotImgSrc = "img/Plot.webp";
 const plot1ImgSrc = "img/Plot1.webp";
 const plot2ImgSrc = "img/Plot2.webp";
 const plot3ImgSrc = "img/Plot3.webp";
 const wheatImgSrc = "img/wheat.webp";
+
 const soundCoin = document.getElementById('sound-coin');
 const soundPay = document.getElementById('sound-pay');
+
 let money = 1000;
 let wheat = 100;
 const EKIM_MALIYET = 50;
@@ -88,6 +85,10 @@ const SILME_KAZANCI = 20;
 let wheatPrice = 10;
 const MIN_WHEAT_PRICE = 10;
 const MAX_WHEAT_PRICE = 20;
+
+const GRID_RADIUS = 7; // ekranı tam doldurmak için büyütebilirsin!
+const GRID_MIN = -GRID_RADIUS, GRID_MAX = GRID_RADIUS;
+
 const wheatPriceBar = document.getElementById('wheat-price-bar');
 const wheatPriceAmount = document.getElementById('wheat-price-amount');
 const pickaxeBtn = document.getElementById('pickaxe-btn');
@@ -99,16 +100,10 @@ const moneyBar = document.getElementById('money-bar');
 const moneyAmount = document.getElementById('money-amount');
 const wheatBar = document.getElementById('wheat-bar');
 const wheatAmount = document.getElementById('wheat-amount');
-let isPickaxe = false;
-let isRemove = false;
-let isWheat = false;
-let isSickle = false;
-let isMouseDown = false;
+let isPickaxe = false, isRemove = false, isWheat = false, isSickle = false, isMouseDown = false;
 let plots = [];
 let wheats = [];
 let handledCoords = new Set();
-
-const GRID_MIN = -4, GRID_MAX = 4; // 9x9 grid
 
 function updateGameAreaTransform() {
   let ww = window.innerWidth, wh = window.innerHeight;
@@ -309,26 +304,24 @@ function addPlot(x, y, mousePos = null) {
   }
   return true;
 }
-function addWheat(x, y) {
+function addWheat(x, y, clickPos=null) {
   if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
   if (!plots.find(p => p.x === x && p.y === y)) return false;
   if (wheats.find(w => w.x === x && w.y === y)) return false;
   if (wheat < 1) return false;
   const barRect = wheatBar.getBoundingClientRect();
   const coords = isoToScreen(x, y);
-  const plotPos = { x: coords.left, y: coords.top };
+  // Ekin animasyonu tam hücre ortasına gitsin:
+  const plotCenter = {
+    x: coords.left,
+    y: coords.top
+  };
   const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
-  animateWheatFly({ from: barPos, to: plotPos, count: 1 });
+  animateWheatFly({ from: barPos, to: plotCenter, count: 1 });
   wheat--;
   updateWheatBar();
   const now = Date.now();
-  let wheatObj = {
-    x, y,
-    plantedAt: now,
-    ready: false,
-    timerInterval: null,
-    harvested: false
-  };
+  let wheatObj = { x, y, plantedAt: now, ready: false, timerInterval: null, harvested: false };
   function updateTimer() {
     const elapsed = Math.floor((Date.now() - wheatObj.plantedAt) / 1000);
     const remain = Math.max(0, 6 - elapsed);
@@ -389,7 +382,6 @@ function removePlot(x, y, mousePos = null) {
   return false;
 }
 
-// === DOKUNMATİK ve MOUSE EVENTLERİ ===
 function handleActionAtMouse(e) {
   let clientX, clientY;
   if (e.touches && e.touches.length > 0) {
@@ -405,11 +397,10 @@ function handleActionAtMouse(e) {
   const mousePos = {x: clientX, y: clientY};
   if (isPickaxe) addPlot(x, y, mousePos);
   if (isRemove) removePlot(x, y, mousePos);
-  if (isWheat) addWheat(x, y);
+  if (isWheat) addWheat(x, y, mousePos);
   if (isSickle) harvestWheat(x, y);
 }
 
-// --- Mouse Eventleri ---
 gameArea.addEventListener('mousedown', (e) => {
   if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
   isMouseDown = true;
@@ -424,7 +415,6 @@ gameArea.addEventListener('mousemove', (e) => {
 document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
 gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
 
-// --- Dokunmatik Eventleri (garanti tekli dokunuş!) ---
 gameArea.addEventListener('touchstart', (e) => {
   if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
   e.preventDefault();
