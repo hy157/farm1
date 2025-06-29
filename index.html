@@ -275,14 +275,10 @@ goStrawberryBtn.addEventListener('click', ()=>{
 });
 
 function updateGoStrawberryBtn() {
-  if(strawberryPageUnlocked || (money >= 10000 && wheat >= 300)) {
-    goStrawberryBtn.classList.remove('disabled-btn');
-    goStrawberryBtn.disabled = false;
-  } else {
-    goStrawberryBtn.classList.add('disabled-btn');
-    goStrawberryBtn.disabled = true;
-  }
+  goStrawberryBtn.classList.remove('disabled-btn');
+  goStrawberryBtn.disabled = false;
 }
+
 
 // --- Bar ve fiyat güncelleyiciler ---
 function updateMoneyBar(type) {
