@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Nizami Grid</title>
+  <title>Tarım Oyunu - Çakışmasız Grid</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <style>
     html, body { width:100vw; height:100vh; margin:0; padding:0; overscroll-behavior:none; touch-action:manipulation; background: #4ecb36;}
@@ -86,7 +86,7 @@ let wheatPrice = 10;
 const MIN_WHEAT_PRICE = 10;
 const MAX_WHEAT_PRICE = 20;
 
-const GRID_RADIUS = 7; // ekranı tam doldurmak için büyütebilirsin!
+const GRID_RADIUS = 7;
 const GRID_MIN = -GRID_RADIUS, GRID_MAX = GRID_RADIUS;
 
 const wheatPriceBar = document.getElementById('wheat-price-bar');
@@ -160,6 +160,15 @@ function screenToIso(screenX, screenY) {
   ix = Math.max(GRID_MIN, Math.min(GRID_MAX, ix));
   iy = Math.max(GRID_MIN, Math.min(GRID_MAX, iy));
   return {x: ix, y: iy};
+}
+
+// --- EKRANDA MI? ---
+function isPlotVisibleOnScreen(x, y) {
+  const coords = isoToScreen(x, y);
+  return (
+    coords.left >= 0 && coords.left <= window.innerWidth &&
+    coords.top  >= 0 && coords.top  <= window.innerHeight
+  );
 }
 
 function plotId(x, y) { return `plot-${x}-${y}`; }
@@ -289,6 +298,7 @@ wheatBtn.addEventListener('click', () => setToolMode("wheat"));
 sickleBtn.addEventListener('click', () => setToolMode("sickle"));
 
 function addPlot(x, y, mousePos = null) {
+  if (!isPlotVisibleOnScreen(x, y)) return false;
   if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
   if (plots.find(p => p.x === x && p.y === y)) return false;
   if (money < EKIM_MALIYET) return false;
@@ -304,18 +314,15 @@ function addPlot(x, y, mousePos = null) {
   }
   return true;
 }
-function addWheat(x, y, clickPos=null) {
+function addWheat(x, y, mousePos=null) {
+  if (!isPlotVisibleOnScreen(x, y)) return false;
   if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
   if (!plots.find(p => p.x === x && p.y === y)) return false;
   if (wheats.find(w => w.x === x && w.y === y)) return false;
   if (wheat < 1) return false;
   const barRect = wheatBar.getBoundingClientRect();
   const coords = isoToScreen(x, y);
-  // Ekin animasyonu tam hücre ortasına gitsin:
-  const plotCenter = {
-    x: coords.left,
-    y: coords.top
-  };
+  const plotCenter = { x: coords.left, y: coords.top };
   const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
   animateWheatFly({ from: barPos, to: plotCenter, count: 1 });
   wheat--;
@@ -341,6 +348,7 @@ function addWheat(x, y, clickPos=null) {
   return true;
 }
 function harvestWheat(x, y) {
+  if (!isPlotVisibleOnScreen(x, y)) return false;
   if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
   const wheatObj = wheats.find(w => w.x === x && w.y === y);
   if (!wheatObj || !wheatObj.ready || wheatObj.harvested) return false;
@@ -358,6 +366,7 @@ function harvestWheat(x, y) {
   return true;
 }
 function removePlot(x, y, mousePos = null) {
+  if (!isPlotVisibleOnScreen(x, y)) return false;
   if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
   const idx = plots.findIndex(p => p.x === x && p.y === y);
   if (idx !== -1) {
