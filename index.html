@@ -2,891 +2,368 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Tarım Oyunu - Buğday & Çilek</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Mobil Tarım Oyunu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    html, body { width:100vw; height:100vh; margin:0; padding:0; overscroll-behavior:none; touch-action:manipulation; background: #4ecb36;}
-    body { font-family:'Segoe UI',Arial,sans-serif; user-select:none; overflow:hidden;}
-    #game-container { position:fixed; left:0; top:0; width:100vw; height:100vh; overflow:hidden; z-index:1; background:transparent; touch-action:none; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;}
-    #toolbar { position:absolute; bottom:2vw; left:0; width:100vw; z-index:10; display:flex; justify-content:center; align-items:flex-end; gap:4vw; padding-bottom:0.5rem; pointer-events:none;}
-    .tool-btn { font-size:7vw; padding:2vw 6vw; border:none; border-radius:2.5vw; cursor:pointer; background:#fff9; margin:0; box-shadow:0 2px 8px #0002; outline:3px solid transparent; transition:outline 0.2s, background 0.18s, transform 0.18s; min-width:17vw; min-height:10vw; pointer-events:auto; font-weight:bold; letter-spacing:0.5px; -webkit-tap-highlight-color:transparent; touch-action:manipulation;}
-    .tool-btn.active { outline:3px solid #13bb18; background:#baffc9; transform:scale(1.1);}
-    .status-bars { position:absolute; top:1vw; left:0; width:100vw; z-index:20; display:flex; justify-content:center; gap:3vw; pointer-events:none; flex-wrap:wrap;}
-    .status-bar { background:#fff8; padding:2vw 4vw 2vw 3vw; border-radius:2vw; font-size:5vw; box-shadow:0 2px 8px #0002; display:flex; align-items:center; font-weight:bold; gap:2vw; min-width:18vw; min-height:7vw; user-select:none; height:10vw; pointer-events:auto; margin-bottom:1vw;}
-    #wheat-price-bar, #strawberry-price-bar { background:#ffe7aaee; border:2px solid #ffb60066; cursor:pointer; transition:box-shadow 0.2s, background 0.2s; font-size:5vw; min-width:22vw;}
-    #wheat-price-bar:active, #strawberry-price-bar:active { box-shadow:0 2px 16px #ffa60055; background:#ffefb3;}
-    .money-gain #money-amount { color:#09c517; transform:scale(1.15);}
-    .money-lose #money-amount { color:#d62424; transform:scale(0.9);}
-    .price-gain .price-amount { color:#1a9701; transform:scale(1.18);}
-    .price-sell .price-amount { color:#ff1b1b; transform:scale(1.25);}
-    .price-amount { font-family:monospace; font-size:5vw; color:#c38307; transition:color 0.2s, transform 0.2s;}
-    #wheat-price-label, #strawberry-price-label { font-size:3vw; color:#9a7e00;}
-    .crop-icon { width:8vw; height:8vw; object-fit:contain; margin-right:2vw; user-select:none; pointer-events:none;}
-    #game-area, #strawberry-area { position:absolute; left:0; top:0; width:100vw; height:100vh; cursor:default; user-select:none; z-index:2; touch-action:none; display:block;}
-    .iso-plot { position:absolute; width:256px; height:172px; transform:translate(-50%, -50%); pointer-events:none; transition:filter 0.1s; will-change:transform,filter,opacity; z-index:2;}
-    .iso-crop { position:absolute; width:256px; height:172px; pointer-events:none; left:0; top:0; transform:translate(-50%, -50%); z-index:22; will-change:transform,filter,opacity;}
-    .money-float { position:absolute; left:0; top:0; pointer-events:none; font-size:4vw; font-weight:bold; opacity:1; z-index:99; transition:opacity 0.15s; will-change:transform, opacity; user-select:none;}
-    .money-gain { color:#11c90e; text-shadow:0 1px 4px #fff8,0 0 2px #45ff42;}
-    .money-lose { color:#d62424; text-shadow:0 1px 4px #fff8,0 0 2px #ff6961;}
-    #strawberry-page, #wheat-page {display:none;}
-    #rotate-warning { display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:9999; background:#222c; color:#fff; font-size:7vw; text-align:center; justify-content:center; align-items:center; flex-direction:column; padding:0 5vw;}
-    #rotate-warning.visible { display:flex;}
-    #rotate-warning .icon { font-size:12vw; margin-bottom:3vw;}
-    #go-strawberry-btn, #go-wheat-btn {
-      position:fixed;
-      right:4vw;
-      bottom:14vw;
-      z-index:999;
-      background:linear-gradient(90deg,#fff 80%,#ffd0e6 120%);
-      color:#e82e6e;
-      border:none;
-      border-radius:2vw;
-      padding:2vw 7vw;
-      font-size:5vw;
-      font-weight:bold;
-      box-shadow:0 4px 20px #e82e6e26,0 1px 5px #0001;
-      cursor:pointer;
-      letter-spacing:1px;
-      transition:transform 0.12s, background 0.3s;
-      display:flex;
-      align-items:center;
-      gap:1vw;
-      outline: 3px solid #ffd0e6;
+    html, body {height: 100%;margin: 0;padding: 0;background: #c7f6b6;font-family: 'Segoe UI', sans-serif;overflow: hidden;touch-action: manipulation;user-select: none;}
+    #game {width: 100vw;height: 100vh;display: flex;flex-direction: column;justify-content: space-between;align-items: center;}
+    #money-bar {width: 100vw;display: flex;align-items: center;justify-content: center;position: fixed;top: 0;left: 0;z-index: 50;background: rgba(255,255,255,0.38);box-shadow: 0 2px 15px rgba(30,60,30,0.05);height: 70px;font-size: 40px;font-weight: bold;letter-spacing: 2px;padding: 7px 0 7px 0;user-select: none;}
+    #money-bar .dollar-emoji {font-size: 40px;margin-right: 18px;margin-top: 2px;filter: drop-shadow(0 1px 2px #8bce96);}
+    #money-value {font-size: 40px;color: #25a16b;text-shadow: 0 1px 0 #fff, 0 1px 10px #98f1b3;margin-right: 8px;font-weight: 700;min-width: 90px;display: inline-block;text-align: right;letter-spacing: 1px;}
+    #field-area {flex: 1 1 auto;width: 100vw;height: 100vh;position: absolute;top: 0;left: 0;z-index: 1;}
+    .field {width: 160px;height: 160px;position: absolute;display: flex;align-items: center;justify-content: center;background: rgba(255,255,255,0.11);border-radius: 32px;box-shadow: 0 8px 28px 0 rgba(60,120,50,0.16), 0 1.5px 6px #a3d7a0 inset;cursor: pointer;transition: box-shadow 0.13s, background 0.15s;z-index: 2;border: 5px solid #e2f6e2;backdrop-filter: blur(2px);}
+    .field-content {position: absolute;top: 0;left: 0;width: 100%;height: 100%;display: flex;align-items: center;justify-content: center;}
+    .field-plot {width: 160px;height: 160px;position: absolute;top: 0;left: 0;pointer-events: none;z-index: 1;filter: drop-shadow(0 7px 16px rgba(0,0,0,0.14));border-radius: 28px;}
+    .field-crop {width: 120px;height: 120px;pointer-events: none;z-index: 2;filter: drop-shadow(0 6px 18px rgba(0,0,0,0.12));position: relative;}
+    .timer-bar-wrap {position: absolute;right: 8px;top: 8px;z-index: 4;display: flex;align-items: center;}
+    .timer-bar {height: 19px;border-radius: 11px;background: #d4f9a9;box-shadow: 0 0 4px #9ecc65;overflow: hidden;width: 100px;margin-right:8px;position:relative;}
+    .timer-bar-inner {height:100%;background:linear-gradient(90deg,#92d957,#f6c10e);border-radius:11px;width:100%;transition:width 0.9s linear;}
+    .timer-bar-text {font-size: 19px;color:#33631b;font-weight: bold;text-shadow: 0 1px 0 #fff;}
+    .product-fly, .money-fly {position: absolute;width: 216px;height: 216px;pointer-events: none;z-index: 1001;transition: transform 2.1s cubic-bezier(.17,.67,.54,1.26), opacity 2.1s;will-change: transform, opacity;font-size: 100px;text-align: center;display: flex;align-items: center;justify-content: center;color: #25a16b;filter: drop-shadow(0 0 14px #d0ffd4);}
+    #bottom-bar {width: 100vw;max-width: 650px;display: flex;justify-content: space-around;align-items: center;background: rgba(60,120,50,0.10);border-radius: 45px 45px 0 0;box-shadow: 0 -3px 22px 0 rgba(100,160,90,0.10);padding: 24px 0 32px 0;position: fixed;left: 50%;bottom: 0;transform: translateX(-50%);z-index: 10;backdrop-filter: blur(1.5px);}
+    .game-btn {width: 110px;height: 110px;font-size: 60px;border: none;border-radius: 35px;background: #e9ffe1;box-shadow: 0 2px 16px 0 rgba(110,180,80,0.14);display: flex;align-items: center;justify-content: center;margin: 0 18px;transition: background 0.13s, transform 0.11s;cursor: pointer;position: relative;overflow: visible;}
+    .game-btn:active {background: #c2f6ba;transform: scale(0.94);}
+    #plant-modal {display: none;position: fixed;top: 50%;left: 50%;transform: translate(-50%, -60%);background: #fafff7;border-radius: 28px;box-shadow: 0 4px 36px rgba(60,120,30,0.14);padding: 50px 22px 35px 22px;z-index: 100;text-align: center;min-width: 300px;}
+    .plant-choice-row {display: flex;justify-content: center;gap: 65px;margin: 0 0 7px 0;}
+    .plant-choice-wrap {display: flex;flex-direction: column;align-items: center;}
+    .plant-choice-img {width: 140px;height: 140px;cursor: pointer;border-radius: 24px;border: 7px solid #ecf7eb;box-shadow: 0 3px 14px rgba(80,120,50,0.13);transition: border 0.13s, transform 0.13s, box-shadow 0.13s;background: #f6fff2;margin-bottom: 7px;}
+    .plant-choice-img:active {border: 7px solid #bbffba;transform: scale(0.97);box-shadow: 0 1px 8px #befbc7;}
+    .plant-price {font-size: 36px;color: #29b56e;font-weight: 600;background: #e4ffd6;padding: 6px 27px;border-radius: 17px;box-shadow: 0 1px 2px #cdebc9;margin-bottom: 2px;}
+    #plant-modal button {margin: 23px 17px 0 17px;font-size: 25px;background: #f7e2e0;border: none;padding: 13px 40px;border-radius: 18px;cursor: pointer;transition: background 0.14s;color: #333;font-weight: 600;}
+    #plant-modal button:active {background: #f3b9b2;}
+    
+    /* ---------  EV/SATIŞ MODALI BOYUT DÜZENLEMESİ (YENİ) ---------- */
+    #home-modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -54%);
+      background: #fdfff6;
+      border-radius: 28px;
+      box-shadow: 0 4px 28px rgba(80,130,30,0.13);
+      padding: 42px 17px 21px 17px;
+      z-index: 3000;
+      text-align: center;
+      user-select: none;
+      width: 90vw;
+      max-width: 390px;
+      min-width: unset;
     }
-    #go-wheat-btn {
-      color:#3e99ea;
-      background:linear-gradient(90deg,#fff 80%,#d6f6ff 120%);
-      left:4vw; right:auto;
-      outline: 3px solid #d6f6ff;
-      box-shadow:0 4px 20px #3e99ea28,0 1px 5px #0001;
-    }
-    #go-strawberry-btn .btn-emoji,
-    #go-wheat-btn .btn-emoji {
-      font-size:6vw;
-      filter: drop-shadow(1px 2px 3px #0001);
-    }
-    #go-strawberry-btn:hover, #go-wheat-btn:hover {
-      transform:scale(1.07) rotate(-2deg);
-      box-shadow:0 6px 24px #e82e6e36,0 1px 7px #0002;
-    }
-    #go-wheat-btn:hover {
-      box-shadow:0 6px 24px #3e99ea36,0 1px 7px #0002;
+    .close-x {position: absolute;top: 13px;right: 18px;font-size: 38px;font-weight: 600;color: #d1735a;cursor: pointer;background: none;border: none;z-index: 1;transition: color 0.14s, transform 0.13s;}
+    .close-x:active {color: #ff3c1e;transform: scale(1.08) rotate(9deg);}
+    .sell-row {display: flex;flex-direction: row;align-items: center;gap: 22px;margin: 30px 0 15px 0;justify-content: center;}
+    .sell-img {width: 72px;height: 72px;border-radius: 17px;background: #f8fff2;box-shadow: 0 1px 8px #d5ffe5;border: 3px solid #e0fae8;display: flex;align-items: center;justify-content: center;}
+    .sell-price {font-size: 28px;font-weight: 700;color: #228750;background: #e3ffe6;border-radius: 13px;padding: 6px 21px;box-shadow: 0 1px 2px #d2f8c9;margin-left: 3px;}
+    .sell-count {font-size: 22px;color: #5f6265;font-weight: 500;margin-right: 10px;background: #fafcff;padding: 4px 10px;border-radius: 11px;border: 1.8px solid #e1e3e3;}
+    .game-btn[style] {width: 34px !important;height: 34px !important;font-size: 16px !important;}
+    /* --------------------------------------------------------------- */
+    
+    @media (max-width: 900px) {
+      .field, .field-plot { width: 110px; height: 110px;}
+      .field-crop { width: 80px; height: 80px;}
+      .product-fly, .money-fly { width: 150px; height: 150px; font-size: 70px;}
+      .plant-choice-img { width: 90px; height: 90px;}
+      /* GÜNCEL BOYUTLAR */
+      #home-modal {
+        width: 90vw;
+        max-width: 97vw;
+        min-width: unset;
+      }
+      .sell-img { width: 44px; height: 44px;}
+      .sell-price { font-size: 19px;}
+      .sell-count { font-size: 14px;}
+      .sell-row { gap: 12px;}
+      .game-btn[style] {width: 25px !important;height: 25px !important;font-size: 12px !important;}
+      .timer-bar {width:64px;}
+      #plant-modal, #home-modal {min-width: 150px;}
+      #money-bar, #money-value, #money-bar .dollar-emoji {font-size: 27px;}
+      .game-btn {width: 65px;height: 65px;font-size: 34px;}
     }
   </style>
 </head>
 <body>
-<audio id="sound-coin" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa4f88.mp3"></audio>
-<audio id="sound-pay" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115bfae13d.mp3"></audio>
-
-<div id="wheat-page">
-  <div id="game-container">
-    <div id="game-area"></div>
-    <button id="go-strawberry-btn">
-      <span class="btn-emoji">🍓</span> <span>Çilek Tarlasına</span> <span class="btn-emoji">➡️</span>
-    </button>
-  </div>
-  <div class="status-bars">
-    <div class="status-bar" id="money-bar"><span style="font-size: 1.2em;">💰</span> <span id="money-amount">1000</span></div>
-    <div class="status-bar" id="wheat-price-bar" title="Elindeki fazla buğdayı sat">
-      <img class="crop-icon" id="wheat-price-icon" src="img/wheat.webp" alt="Buğday">
-      <span class="price-amount" id="wheat-price-amount">10</span>
-      <span id="wheat-price-label"></span>
+  <div id="game">
+    <div id="money-bar">
+      <span class="dollar-emoji">💵</span>
+      <span id="money-value">100</span>
     </div>
-    <div class="status-bar" id="wheat-bar">
-      <img class="crop-icon" id="wheat-icon" src="img/wheat.webp" alt="Buğday">
-      <span id="wheat-amount">100</span>
+    <div id="field-area"></div>
+    <!-- Tarla Ekim Modalı -->
+    <div id="plant-modal">
+      <div class="plant-choice-row">
+        <div class="plant-choice-wrap">
+          <img src="img/strawberry.png" class="plant-choice-img" onclick="choosePlant('strawberry')" id="choose-strawberry">
+          <span class="plant-price">💵 60</span>
+        </div>
+        <div class="plant-choice-wrap">
+          <img src="img/wheat.webp" class="plant-choice-img" onclick="choosePlant('wheat')" id="choose-wheat">
+          <span class="plant-price">💵 40</span>
+        </div>
+      </div>
+      <div>
+        <button onclick="closeModal()">Vazgeç</button>
+      </div>
     </div>
-  </div>
-  <div id="toolbar">
-    <button id="pickaxe-btn" class="tool-btn" aria-label="Kaz">⛏️</button>
-    <button id="wheat-btn" class="tool-btn" aria-label="Ekin ek">🌾</button>
-    <button id="sickle-btn" class="tool-btn" aria-label="Biç">✂️</button>
-    <button id="remove-btn" class="tool-btn" aria-label="Sil">❌</button>
-  </div>
-</div>
-
-<div id="strawberry-page">
-  <div id="game-container">
-    <div id="strawberry-area"></div>
-    <button id="go-wheat-btn">
-      <span class="btn-emoji">🌾</span> <span>Buğday Tarlasına</span> <span class="btn-emoji">➡️</span>
-    </button>
-  </div>
-  <div class="status-bars">
-    <div class="status-bar" id="strawberry-money-bar"><span style="font-size: 1.2em;">💰</span> <span id="strawberry-money-amount">1000</span></div>
-    <div class="status-bar" id="strawberry-price-bar" title="Elindeki fazla çileği sat">
-      <img class="crop-icon" id="strawberry-price-icon" src="img/Strawberry.png" alt="Çilek">
-      <span class="price-amount" id="strawberry-price-amount">20</span>
-      <span id="strawberry-price-label"></span>
+    <!-- ALT BUTONLAR -->
+    <div id="bottom-bar">
+      <button class="game-btn" id="plant-btn" title="Ekim Yap (Kazma)">⛏️</button>
+      <button class="game-btn" id="home-btn" title="Depo/Ev">🏠</button>
+      <button class="game-btn" id="empty-btn" title="Buton 3">🧺</button>
+      <button class="game-btn" id="remove-btn" title="Tarlaları Sil">❌</button>
     </div>
-    <div class="status-bar" id="strawberry-bar">
-      <img class="crop-icon" id="strawberry-icon" src="img/Strawberry.png" alt="Çilek">
-      <span id="strawberry-amount">100</span>
+    <!-- Satış Modalı -->
+    <div id="home-modal">
+      <button class="close-x" onclick="closeHomeModal()">×</button>
+      <div class="sell-row">
+        <span class="sell-count" id="wheat-count">0</span>
+        <span class="sell-img"><img src="img/wheat.webp" style="width:100%;height:100%"></span>
+        <span class="sell-price" id="wheat-price">$0.00</span>
+        <button class="game-btn" style="width:42px;height:42px;font-size:22px;" onclick="sellProduct('wheat')">Sat</button>
+      </div>
+      <div class="sell-row">
+        <span class="sell-count" id="strawberry-count">0</span>
+        <span class="sell-img"><img src="img/strawberry.png" style="width:100%;height:100%"></span>
+        <span class="sell-price" id="strawberry-price">$0.00</span>
+        <button class="game-btn" style="width:42px;height:42px;font-size:22px;" onclick="sellProduct('strawberry')">Sat</button>
+      </div>
     </div>
   </div>
-  <div id="toolbar">
-    <button id="strawberry-pickaxe-btn" class="tool-btn" aria-label="Kaz">⛏️</button>
-    <button id="strawberry-btn" class="tool-btn" aria-label="Çilek ek"><img src="img/Strawberry.png" style="width:7vw;height:7vw;vertical-align:middle;"></button>
-    <button id="strawberry-sickle-btn" class="tool-btn" aria-label="Çilek biç">✂️</button>
-    <button id="strawberry-remove-btn" class="tool-btn" aria-label="Sil">❌</button>
-  </div>
-</div>
+  <script>
+    let fields = []; // {x, y, type, dried, div, timer, created}
+    let inventory = {wheat: 0, strawberry: 0};
+    let money = 100;
+    let plantMode = false;
+    let lastPlantPos = {x:0, y:0};
+    const PRICES = {wheat: 40, strawberry: 60};
+    const SELL_MINMAX = {wheat: [1.00,3.00], strawberry: [2.00,4.00]};
+    let sellPrices = {wheat: 0, strawberry: 0};
+    let priceInterval = null;
+    const FIELD_SIZE = 160;
+    const DRY_IMG = "img/Plot.webp";
+    const IMAGES = {wheat: "img/wheat.webp", strawberry: "img/strawberry.png"};
+    const PLOTS = {wheat: "img/Plot3.webp", strawberry: "img/PlotS3.webp"};
 
-<div id="rotate-warning">
-  <div class="icon">🔄</div>
-  Lütfen ekranı <b>Dikey</b> moda çevirin<br>
-  <small>(Oyun sadece dikey oynanır)</small>
-</div>
-
-<script>
-// Ayarlar ve global değişkenler
-const VIRTUAL_W = 800, VIRTUAL_H = 1200;
-let scale = 1, offsetLeft = 0, offsetTop = 0;
-const tileW = 256, tileH = 172;
-const GRID_RADIUS = 7;
-const GRID_MIN = -GRID_RADIUS, GRID_MAX = GRID_RADIUS;
-
-let money = 1000;
-let wheat = 100;
-let wheatPrice = 10;
-const EKIM_MALIYET = 50;
-const SILME_KAZANCI = 20;
-const MIN_WHEAT_PRICE = 10;
-const MAX_WHEAT_PRICE = 20;
-
-let strawberryMoney = 1000;
-let strawberry = 100;
-let strawberryPrice = 20;
-const STRAWBERRY_MIN_PRICE = 20;
-const STRAWBERRY_MAX_PRICE = 30;
-
-let activePage = 'wheat';
-let plots = [];
-let wheats = [];
-let handledCoords = new Set();
-
-let strawberryPlots = [];
-let strawberryPlants = [];
-let strawberryHandledCoords = new Set();
-
-let strawberryPageUnlocked = false;
-
-// Sayfa geçiş
-const wheatPage = document.getElementById('wheat-page');
-const strawberryPage = document.getElementById('strawberry-page');
-const gameArea = document.getElementById('game-area');
-const strawberryArea = document.getElementById('strawberry-area');
-
-function showPage(page) {
-  wheatPage.style.display = (page === 'wheat') ? 'block' : 'none';
-  strawberryPage.style.display = (page === 'strawberry') ? 'block' : 'none';
-  activePage = page;
-  updateGameAreaTransform();
-  if(page === 'wheat') redrawAllPlots();
-  else redrawAllStrawberryPlots();
-}
-
-function updateGameAreaTransform() {
-  let ww = window.innerWidth, wh = window.innerHeight;
-  scale = Math.min(ww / VIRTUAL_W, wh * 0.98 / VIRTUAL_H);
-  offsetLeft = (ww - VIRTUAL_W * scale) / 2;
-  offsetTop = ((wh * 0.98) - VIRTUAL_H * scale) / 2;
-  (activePage === 'wheat' ? gameArea : strawberryArea).style.transform = `scale(${scale})`;
-  (activePage === 'wheat' ? gameArea : strawberryArea).style.left = `${offsetLeft / scale}px`;
-  (activePage === 'wheat' ? gameArea : strawberryArea).style.top = `${offsetTop / scale}px`;
-  (activePage === 'wheat' ? gameArea : strawberryArea).style.transformOrigin = '0 0';
-}
-updateGameAreaTransform();
-window.addEventListener('resize', () => { updateGameAreaTransform(); if(activePage==='wheat') redrawAllPlots(); else redrawAllStrawberryPlots(); });
-window.addEventListener('orientationchange', () => { setTimeout(() => { checkOrientation(); updateGameAreaTransform(); if(activePage==='wheat') redrawAllPlots(); else redrawAllStrawberryPlots(); }, 350); });
-
-function checkOrientation() {
-  const isPortrait = window.innerHeight >= window.innerWidth;
-  const warning = document.getElementById('rotate-warning');
-  if(isPortrait){
-    warning.classList.remove('visible');
-    wheatPage.style.display = (activePage === 'wheat') ? '' : 'none';
-    strawberryPage.style.display = (activePage === 'strawberry') ? '' : 'none';
-  } else {
-    warning.classList.add('visible');
-    wheatPage.style.display = 'none';
-    strawberryPage.style.display = 'none';
-  }
-}
-checkOrientation();
-
-function screenToGame(x, y) {
-  return {
-    x: (x - offsetLeft) / scale,
-    y: (y - offsetTop) / scale
-  };
-}
-function isoToScreen(x, y) {
-  const centerX = VIRTUAL_W / 2;
-  const centerY = 350;
-  return {
-    left: centerX + (x - y) * (tileW / 2),
-    top: centerY + (x + y) * (tileH / 2)
-  };
-}
-function screenToIso(screenX, screenY) {
-  const {x, y} = screenToGame(screenX, screenY - tileH / 2);
-  const centerX = VIRTUAL_W / 2;
-  const centerY = 350;
-  const mouseX = x - centerX;
-  const mouseY = y - centerY;
-  let ix = Math.round((mouseY / (tileH / 2) + mouseX / (tileW / 2)) / 2);
-  let iy = Math.round((mouseY / (tileH / 2) - mouseX / (tileW / 2)) / 2);
-  ix = Math.max(GRID_MIN, Math.min(GRID_MAX, ix));
-  iy = Math.max(GRID_MIN, Math.min(GRID_MAX, iy));
-  return {x: ix, y: iy};
-}
-
-// --- Buğday ve çilek geçiş butonları ---
-const goStrawberryBtn = document.getElementById('go-strawberry-btn');
-const goWheatBtn = document.getElementById('go-wheat-btn');
-
-goStrawberryBtn.addEventListener('click', ()=>{
-  if(!strawberryPageUnlocked) {
-    strawberryPageUnlocked = true;
-    strawberryMoney = money;
-    strawberry = 100;
-    strawberryPlots = [];
-    strawberryPlants = [];
-  } else {
-    strawberryMoney = money;
-  }
-  showPage('strawberry');
-  updateStrawberryMoneyBar();
-  updateStrawberryBar();
-  updateStrawberryPriceBar();
-  redrawAllStrawberryPlots();
-  updateGoStrawberryBtn();
-});
-
-  goWheatBtn.addEventListener('click', ()=>{
-  money = strawberryMoney;
-  showPage('wheat');
-  updateMoneyBar();
-  updateWheatBar();
-  updateWheatPriceBar();
-  redrawAllPlots();
-  updateGoStrawberryBtn();
-});
-
-function updateGoStrawberryBtn() {
-  goStrawberryBtn.classList.remove('disabled-btn');
-  goStrawberryBtn.disabled = false;
-}
-
-
-// --- Bar ve fiyat güncelleyiciler ---
-function updateMoneyBar(type) {
-  document.getElementById('money-amount').textContent = money;
-  const bar = document.getElementById('money-bar');
-  bar.classList.remove('money-gain', 'money-lose');
-  void bar.offsetWidth;
-  if (type === 'lose') bar.classList.add('money-lose');
-  else if (type === 'gain') bar.classList.add('money-gain');
-  setTimeout(() => bar.classList.remove('money-gain', 'money-lose'), 350);
-}
-function updateWheatBar() {
-  document.getElementById('wheat-amount').textContent = wheat;
-}
-function updateWheatPriceBar(animType) {
-  const el = document.getElementById('wheat-price-amount');
-  el.textContent = wheatPrice;
-  const bar = document.getElementById('wheat-price-bar');
-  bar.classList.remove('price-gain', 'price-sell');
-  void bar.offsetWidth;
-  if(animType === 'gain') { bar.classList.add('price-gain'); setTimeout(()=>bar.classList.remove('price-gain'), 350);}
-  if(animType === 'sell') { bar.classList.add('price-sell'); setTimeout(()=>bar.classList.remove('price-sell'), 450);}
-}
-function updateStrawberryMoneyBar(type) {
-  document.getElementById('strawberry-money-amount').textContent = strawberryMoney;
-  const bar = document.getElementById('strawberry-money-bar');
-  bar.classList.remove('money-gain', 'money-lose');
-  void bar.offsetWidth;
-  if (type === 'lose') bar.classList.add('money-lose');
-  else if (type === 'gain') bar.classList.add('money-gain');
-  setTimeout(() => bar.classList.remove('money-gain', 'money-lose'), 350);
-}
-function updateStrawberryBar() {
-  document.getElementById('strawberry-amount').textContent = strawberry;
-}
-function updateStrawberryPriceBar(animType) {
-  const el = document.getElementById('strawberry-price-amount');
-  el.textContent = strawberryPrice;
-  const bar = document.getElementById('strawberry-price-bar');
-  bar.classList.remove('price-gain', 'price-sell');
-  void bar.offsetWidth;
-  if(animType === 'gain') { bar.classList.add('price-gain'); setTimeout(()=>bar.classList.remove('price-gain'), 350);}
-  if(animType === 'sell') { bar.classList.add('price-sell'); setTimeout(()=>bar.classList.remove('price-sell'), 450);}
-}
-
-// --- Fiyatlar değişsin ---
-setInterval(() => {
-  wheatPrice = Math.floor(Math.random() * (MAX_WHEAT_PRICE - MIN_WHEAT_PRICE + 1)) + MIN_WHEAT_PRICE;
-  updateWheatPriceBar('gain');
-  strawberryPrice = Math.floor(Math.random() * (STRAWBERRY_MAX_PRICE - STRAWBERRY_MIN_PRICE + 1)) + STRAWBERRY_MIN_PRICE;
-  updateStrawberryPriceBar('gain');
-}, 1000);
-
-// Animasyonlar
-function animateMoneyFloat({amount, from, to}) {
-  const emoji = '💰';
-  const sign = amount > 0 ? '+' : '';
-  const colorClass = amount > 0 ? 'money-gain' : 'money-lose';
-  const float = document.createElement('span');
-  float.className = `money-float ${colorClass}`;
-  float.textContent = `${sign}${amount} ${emoji}`;
-  float.style.left = from.x + 'px';
-  float.style.top = from.y + 'px';
-  float.style.opacity = 1;
-  document.body.appendChild(float);
-  float.animate([
-    {transform: 'translate(0,0) scale(1)',opacity:1},
-    {transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(1.4)`,opacity:1,offset:0.8},
-    {transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(0.7)`,opacity:0}
-  ], {duration: 700,easing:'cubic-bezier(.57,.11,.82,1.39)'});
-  setTimeout(() => { float.remove(); }, 750);
-}
-function animateProductFly({from, to, count=1, imgSrc}) {
-  for (let i = 0; i < count; i++) {
-    const icon = document.createElement('img');
-    icon.src = imgSrc;
-    icon.style.position = 'absolute';
-    icon.style.left = from.x + 'px';
-    icon.style.top = from.y + 'px';
-    icon.style.width = '96px';
-    icon.style.height = '96px';
-    icon.style.pointerEvents = 'none';
-    icon.style.opacity = 1;
-    icon.style.zIndex = 100;
-    icon.style.transition = 'none';
-    document.body.appendChild(icon);
-    const startOffsetX = (Math.random()-0.5)*16;
-    const startOffsetY = (Math.random()-0.5)*16;
-    icon.style.transform = `translate(${startOffsetX}px,${startOffsetY}px) scale(1)`;
-    setTimeout(() => {
-      icon.animate([
-        { transform: `translate(${startOffsetX}px,${startOffsetY}px) scale(1)`, opacity: 1 },
-        { transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(1.4)`, opacity: 1, offset: 0.7 },
-        { transform: `translate(${to.x-from.x}px,${to.y-from.y}px) scale(0.7)`, opacity: 0 }
-      ], { duration: 850 + i*80, easing: 'cubic-bezier(.45,1.2,.49,1)' });
-      setTimeout(() => icon.remove(), 900 + i*80);
-    }, i * 100);
-  }
-}
-
-// --- Satış Butonları ---
-document.getElementById('wheat-price-bar').addEventListener('click', () => {
-  const satilacak = Math.max(0, wheat - 10);
-  if (satilacak === 0) return;
-  const kazanc = satilacak * wheatPrice;
-  const wheatBarRect = document.getElementById('wheat-bar').getBoundingClientRect();
-  const priceBarRect = document.getElementById('wheat-price-bar').getBoundingClientRect();
-  animateProductFly({
-    from: { x: wheatBarRect.left + wheatBarRect.width/2 - 32, y: wheatBarRect.top + wheatBarRect.height/2 - 32 },
-    to:   { x: priceBarRect.left + priceBarRect.width/2 - 32, y: priceBarRect.top + priceBarRect.height/2 - 32 },
-    count: Math.min(satilacak, 7),
-    imgSrc: "img/wheat.webp"
-  });
-  setTimeout(() => {
-    const moneyBarRect = document.getElementById('money-bar').getBoundingClientRect();
-    animateMoneyFloat({
-      amount: kazanc,
-      from: { x: priceBarRect.left + priceBarRect.width/2 - 12, y: priceBarRect.top + priceBarRect.height/2 - 12 },
-      to:   { x: moneyBarRect.left + moneyBarRect.width/2 - 12, y: moneyBarRect.top + moneyBarRect.height/2 - 12 }
-    });
-    soundCoin.currentTime = 0; soundCoin.play();
-  }, 300);
-  wheat -= satilacak;
-  updateWheatBar();
-  setTimeout(() => {
-    money += kazanc;
-    updateMoneyBar('gain');
-    updateWheatPriceBar('sell');
-    updateGoStrawberryBtn();
-  }, 450);
-});
-
-document.getElementById('strawberry-price-bar').addEventListener('click', () => {
-  const satilacak = Math.max(0, strawberry - 10);
-  if (satilacak === 0) return;
-  const kazanc = satilacak * strawberryPrice;
-  const strawberryBarRect = document.getElementById('strawberry-bar').getBoundingClientRect();
-  const priceBarRect = document.getElementById('strawberry-price-bar').getBoundingClientRect();
-  animateProductFly({
-    from: { x: strawberryBarRect.left + strawberryBarRect.width/2 - 32, y: strawberryBarRect.top + strawberryBarRect.height/2 - 32 },
-    to:   { x: priceBarRect.left + priceBarRect.width/2 - 32, y: priceBarRect.top + priceBarRect.height/2 - 32 },
-    count: Math.min(satilacak, 7),
-    imgSrc: "img/Strawberry.png"
-  });
-  setTimeout(() => {
-    const moneyBarRect = document.getElementById('strawberry-money-bar').getBoundingClientRect();
-    animateMoneyFloat({
-      amount: kazanc,
-      from: { x: priceBarRect.left + priceBarRect.width/2 - 12, y: priceBarRect.top + priceBarRect.height/2 - 12 },
-      to:   { x: moneyBarRect.left + moneyBarRect.width/2 - 12, y: moneyBarRect.top + moneyBarRect.height/2 - 12 }
-    });
-    soundCoin.currentTime = 0; soundCoin.play();
-  }, 300);
-  strawberry -= satilacak;
-  updateStrawberryBar();
-  setTimeout(() => {
-    strawberryMoney += kazanc;
-    updateStrawberryMoneyBar('gain');
-    updateStrawberryPriceBar('sell');
-  }, 450);
-});
-
-// --- Buton Kontrolleri ---
-let isPickaxe = false, isRemove = false, isWheat = false, isSickle = false;
-let isStrawberryPickaxe = false, isStrawberryRemove = false, isStrawberry = false, isStrawberrySickle = false;
-let isMouseDown = false;
-
-// Wheat butonları
-document.getElementById('pickaxe-btn').addEventListener('click', () => setToolMode("pickaxe"));
-document.getElementById('remove-btn').addEventListener('click', () => setToolMode("remove"));
-document.getElementById('wheat-btn').addEventListener('click', () => setToolMode("wheat"));
-document.getElementById('sickle-btn').addEventListener('click', () => setToolMode("sickle"));
-
-// Strawberry butonları
-document.getElementById('strawberry-pickaxe-btn').addEventListener('click', () => setStrawberryToolMode("pickaxe"));
-document.getElementById('strawberry-remove-btn').addEventListener('click', () => setStrawberryToolMode("remove"));
-document.getElementById('strawberry-btn').addEventListener('click', () => setStrawberryToolMode("strawberry"));
-document.getElementById('strawberry-sickle-btn').addEventListener('click', () => setStrawberryToolMode("sickle"));
-
-function setToolMode(mode) {
-  if (mode === "pickaxe") {
-    isPickaxe = !isPickaxe;
-    if (isPickaxe) { isRemove = false; isWheat = false; isSickle = false; }
-  } else if (mode === "remove") {
-    isRemove = !isRemove;
-    if (isRemove) { isPickaxe = false; isWheat = false; isSickle = false; }
-  } else if (mode === "wheat") {
-    isWheat = !isWheat;
-    if (isWheat) { isPickaxe = false; isRemove = false; isSickle = false; }
-  } else if (mode === "sickle") {
-    isSickle = !isSickle;
-    if (isSickle) { isPickaxe = false; isRemove = false; isWheat = false; }
-  }
-  document.getElementById('pickaxe-btn').classList.toggle('active', isPickaxe);
-  document.getElementById('remove-btn').classList.toggle('active', isRemove);
-  document.getElementById('wheat-btn').classList.toggle('active', isWheat);
-  document.getElementById('sickle-btn').classList.toggle('active', isSickle);
-  gameArea.style.cursor = (isPickaxe || isRemove || isWheat || isSickle) ? "pointer" : "default";
-}
-
-function setStrawberryToolMode(mode) {
-  if (mode === "pickaxe") {
-    isStrawberryPickaxe = !isStrawberryPickaxe;
-    if (isStrawberryPickaxe) { isStrawberryRemove = false; isStrawberry = false; isStrawberrySickle = false; }
-  } else if (mode === "remove") {
-    isStrawberryRemove = !isStrawberryRemove;
-    if (isStrawberryRemove) { isStrawberryPickaxe = false; isStrawberry = false; isStrawberrySickle = false; }
-  } else if (mode === "strawberry") {
-    isStrawberry = !isStrawberry;
-    if (isStrawberry) { isStrawberryPickaxe = false; isStrawberryRemove = false; isStrawberrySickle = false; }
-  } else if (mode === "sickle") {
-    isStrawberrySickle = !isStrawberrySickle;
-    if (isStrawberrySickle) { isStrawberryPickaxe = false; isStrawberryRemove = false; isStrawberry = false; }
-  }
-  document.getElementById('strawberry-pickaxe-btn').classList.toggle('active', isStrawberryPickaxe);
-  document.getElementById('strawberry-remove-btn').classList.toggle('active', isStrawberryRemove);
-  document.getElementById('strawberry-btn').classList.toggle('active', isStrawberry);
-  document.getElementById('strawberry-sickle-btn').classList.toggle('active', isStrawberrySickle);
-  strawberryArea.style.cursor = (isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle) ? "pointer" : "default";
-}
-
-// --- Buğday Oyun Alanı Olayları ---
-gameArea.addEventListener('mousedown', (e) => {
-  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
-  isMouseDown = true;
-  handledCoords.clear();
-  handleActionAtMouse(e);
-});
-gameArea.addEventListener('mousemove', (e) => {
-  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
-    handleActionAtMouse(e);
-  }
-});
-document.addEventListener('mouseup', () => { isMouseDown = false; handledCoords.clear(); });
-gameArea.addEventListener('mouseleave', () => { isMouseDown = false; handledCoords.clear(); });
-
-gameArea.addEventListener('touchstart', (e) => {
-  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
-  e.preventDefault();
-  isMouseDown = true;
-  handledCoords.clear();
-  handleActionAtMouse(e);
-  setTimeout(() => handledCoords.clear(), 80);
-});
-gameArea.addEventListener('touchend', (e) => {
-  if (!(isPickaxe || isRemove || isWheat || isSickle)) return;
-  handleActionAtMouse(e);
-  isMouseDown = false;
-  handledCoords.clear();
-});
-gameArea.addEventListener('touchmove', (e) => {
-  if (isMouseDown && (isPickaxe || isRemove || isWheat || isSickle)) {
-    handleActionAtMouse(e);
-  }
-});
-gameArea.addEventListener('touchcancel', () => { isMouseDown = false; handledCoords.clear(); });
-document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-function handleActionAtMouse(e) {
-  let clientX, clientY;
-  if (e.touches && e.touches.length > 0) {
-    clientX = e.touches[0].clientX;
-    clientY = e.touches[0].clientY;
-  } else {
-    clientX = e.clientX; clientY = e.clientY;
-  }
-  const { x, y } = screenToIso(clientX, clientY);
-  const key = `${x},${y}`;
-  if (handledCoords.has(key)) return;
-  handledCoords.add(key);
-  const mousePos = {x: clientX, y: clientY};
-  if (isPickaxe) addPlot(x, y, mousePos);
-  if (isRemove) removePlot(x, y, mousePos);
-  if (isWheat) addWheat(x, y, mousePos);
-  if (isSickle) harvestWheat(x, y);
-}
-
-// --- Buğday Tarla Fonksiyonları ---
-function addPlot(x, y, mousePos = null) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  if (plots.find(p => p.x === x && p.y === y)) return false;
-  if (money < EKIM_MALIYET) return false;
-  plots.push({x, y});
-  money -= EKIM_MALIYET;
-  updateMoneyBar('lose');
-  redrawAllPlots();
-  if (mousePos) {
-    const barRect = document.getElementById('money-bar').getBoundingClientRect();
-    const from = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
-    animateMoneyFloat({ amount: -EKIM_MALIYET, from: from, to: mousePos });
-    soundPay.currentTime = 0; soundPay.play();
-  }
-  updateGoStrawberryBtn();
-  return true;
-}
-function addWheat(x, y, clickPos=null) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  if (!plots.find(p => p.x === x && p.y === y)) return false;
-  if (wheats.find(w => w.x === x && w.y === y)) return false;
-  if (wheat < 1) return false;
-  const barRect = document.getElementById('wheat-bar').getBoundingClientRect();
-  const coords = isoToScreen(x, y);
-  const plotCenter = { x: coords.left, y: coords.top };
-  const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
-  animateProductFly({ from: barPos, to: plotCenter, count: 1, imgSrc: "img/wheat.webp" });
-  wheat--;
-  updateWheatBar();
-  const now = Date.now();
-  let wheatObj = { x, y, plantedAt: now, ready: false, timerInterval: null, harvested: false };
-  function updateTimer() {
-    const elapsed = Math.floor((Date.now() - wheatObj.plantedAt) / 1000);
-    const remain = Math.max(0, 6 - elapsed);
-    if (wheatObj.harvested) return;
-    if (remain <= 0) {
-      wheatObj.ready = true;
-      clearInterval(wheatObj.timerInterval);
-      redrawAllPlots();
-    } else {
-      redrawAllPlots();
+    function updateMoneyBar() {
+      document.getElementById("money-value").textContent = money.toFixed(2);
     }
-  }
-  updateTimer();
-  wheatObj.timerInterval = setInterval(updateTimer, 400);
-  wheats.push(wheatObj);
-  redrawAllPlots();
-  return true;
-}
-function harvestWheat(x, y) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  const wheatObj = wheats.find(w => w.x === x && w.y === y);
-  if (!wheatObj || !wheatObj.ready || wheatObj.harvested) return false;
-  wheatObj.harvested = true;
-  if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
-  const coords = isoToScreen(x, y);
-  const plotRect = { left: coords.left - 128, top: coords.top - 86, width: 256, height: 172 };
-  const barRect = document.getElementById('wheat-bar').getBoundingClientRect();
-  const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
-  const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
-  animateProductFly({from, to, count: 4, imgSrc: "img/wheat.webp"});
-  wheats = wheats.filter(w => !(w.x === x && w.y === y));
-  setTimeout(() => { wheat += 4; updateWheatBar(); redrawAllPlots(); }, 500);
-  redrawAllPlots();
-  return true;
-}
-function removePlot(x, y, mousePos = null) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  const idx = plots.findIndex(p => p.x === x && p.y === y);
-  if (idx !== -1) {
-    plots.splice(idx, 1);
-    const wheatIdx = wheats.findIndex(w => w.x === x && w.y === y);
-    if (wheatIdx !== -1) {
-      const wheatObj = wheats[wheatIdx];
-      if (wheatObj.timerInterval) clearInterval(wheatObj.timerInterval);
-      wheats.splice(wheatIdx, 1);
-    }
-    money += SILME_KAZANCI;
-    updateMoneyBar('gain');
-    redrawAllPlots();
-    if (mousePos) {
-      const barRect = document.getElementById('money-bar').getBoundingClientRect();
-      const to = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
-      animateMoneyFloat({ amount: SILME_KAZANCI, from: mousePos, to: to });
-      soundCoin.currentTime = 0; soundCoin.play();
-    }
-    updateGoStrawberryBtn();
-    return true;
-  }
-  return false;
-}
+    document.getElementById("plant-btn").onclick = () => {
+      plantMode = true;
+      document.getElementById("plant-btn").style.background = "#f3d298";
+    };
 
-// --- Çizim Buğday ---
-function redrawAllPlots() {
-  document.querySelectorAll('.iso-plot').forEach(el => el.remove());
-  document.querySelectorAll('.iso-crop').forEach(el => el.remove());
-  let items = [];
-  plots.forEach(plot => {items.push({type: 'plot', x: plot.x, y: plot.y});});
-  wheats.forEach(wheat => {
-    if (wheat.harvested) return;
-    items.push({type: 'wheat', x: wheat.x, y: wheat.y, wheat});
-  });
-  items.sort((a, b) => a.y - b.y || a.x - b.x);
-  items.forEach(item => {
-    const coords = isoToScreen(item.x, item.y);
-    if (item.type === 'plot') {
+    document.getElementById("field-area").onclick = function(e) {
+      if (!plantMode) return;
+      if (e.target !== document.getElementById("field-area")) return;
+      const rect = this.getBoundingClientRect();
+      let x = e.clientX - rect.left - FIELD_SIZE/2;
+      let y = e.clientY - rect.top - FIELD_SIZE/2;
+      lastPlantPos = {x, y};
+      openModal();
+      plantMode = false;
+      document.getElementById("plant-btn").style.background = "#e9ffe1";
+    };
+
+    const plantModal = document.getElementById("plant-modal");
+    function openModal() {
+      plantModal.style.display = "block";
+      document.getElementById('choose-strawberry').style.opacity = money >= PRICES.strawberry ? '1' : '0.3';
+      document.getElementById('choose-wheat').style.opacity = money >= PRICES.wheat ? '1' : '0.3';
+      document.getElementById('choose-strawberry').style.pointerEvents = money >= PRICES.strawberry ? 'auto' : 'none';
+      document.getElementById('choose-wheat').style.pointerEvents = money >= PRICES.wheat ? 'auto' : 'none';
+    }
+    function closeModal() {
+      plantModal.style.display = "none";
+    }
+    function choosePlant(type) {
+      if (money < PRICES[type]) return;
+      addField(lastPlantPos.x, lastPlantPos.y, type);
+      flyMoney(PRICES[type], lastPlantPos.x + FIELD_SIZE/2, lastPlantPos.y + FIELD_SIZE/2, false);
+      money -= PRICES[type];
+      updateMoneyBar();
+      closeModal();
+    }
+
+    function addField(x, y, type) {
+      let div = document.createElement("div");
+      div.className = "field";
+      div.style.left = x + "px";
+      div.style.top = y + "px";
+      let f = {x, y, type, dried: false, div, created: Date.now()};
+      div.onclick = (ev) => {
+        ev.stopPropagation();
+        onFieldClick(div, f);
+      };
+      renderFieldContent(f);
+      document.getElementById("field-area").appendChild(div);
+      fields.push(f);
+      f.timer = setInterval(()=>updateFieldTimer(f), 1000);
+    }
+
+    function renderFieldContent(f) {
+      let div = f.div;
+      div.innerHTML = "";
+      const fieldContent = document.createElement('div');
+      fieldContent.className = 'field-content';
+      const plotImg = document.createElement('img');
+      plotImg.src = f.dried ? DRY_IMG : PLOTS[f.type];
+      plotImg.className = 'field-plot';
+      fieldContent.appendChild(plotImg);
+      if (!f.dried) {
+        const cropImg = document.createElement('img');
+        cropImg.src = IMAGES[f.type];
+        cropImg.className = 'field-crop';
+        fieldContent.appendChild(cropImg);
+      }
+      div.appendChild(fieldContent);
+      // TIMER BAR
+      if (!f.dried) {
+        let wrap = document.createElement('div');
+        wrap.className = "timer-bar-wrap";
+        let bar = document.createElement('div');
+        bar.className = "timer-bar";
+        let inner = document.createElement('div');
+        inner.className = "timer-bar-inner";
+        bar.appendChild(inner);
+        let text = document.createElement('div');
+        text.className = "timer-bar-text";
+        wrap.appendChild(bar); wrap.appendChild(text);
+        div.appendChild(wrap);
+        f.timerBarInner = inner;
+        f.timerBarText = text;
+        updateFieldTimer(f,true);
+      }
+    }
+
+    function updateFieldTimer(f,init){
+      if (f.dried) return;
+      let elapsed = Math.floor((Date.now()-f.created)/1000);
+      let left = Math.max(0, 60 - elapsed);
+      if (left <= 0) {
+        clearInterval(f.timer);
+        f.dried = true;
+        renderFieldContent(f);
+      } else {
+        if(f.timerBarInner)f.timerBarInner.style.width = (left/60*100)+'%';
+        if(f.timerBarText)f.timerBarText.textContent = left+"s";
+      }
+    }
+
+    // Hasat
+    function onFieldClick(div, f) {
+      if (f.dried) return;
+      flyProduct(div, f.type);
+    }
+    function flyProduct(div, type) {
+      const rect = div.getBoundingClientRect();
       const img = document.createElement('img');
-      img.src = "img/Plot.webp";
-      img.className = "iso-plot";
-      img.style.left = coords.left + "px";
-      img.style.top = coords.top + "px";
-      img.style.zIndex = 10 + item.y;
-      gameArea.appendChild(img);
-    } else if (item.type === 'wheat') {
-      let wheatSrc;
-      const w = item.wheat;
-      const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
-      const remain = Math.max(0, 6 - elapsed);
-      if (remain > 3) wheatSrc = "img/Plot1.webp";
-      else if (remain > 0) wheatSrc = "img/Plot2.webp";
-      else { wheatSrc = "img/Plot3.webp"; w.ready = true; }
-      const wheatImg = document.createElement('img');
-      wheatImg.src = wheatSrc;
-      wheatImg.className = "iso-crop";
-      wheatImg.style.left = coords.left + "px";
-      wheatImg.style.top = coords.top + "px";
-      wheatImg.style.zIndex = 20 + item.y;
-      gameArea.appendChild(wheatImg);
+      img.src = IMAGES[type];
+      img.className = "product-fly";
+      img.style.left = (rect.left + rect.width/2 - 108) + "px";
+      img.style.top = (rect.top + rect.height/2 - 108) + "px";
+      img.style.opacity = 1;
+      img.style.position = "fixed";
+      img.style.transform = "scale(1)";
+      document.body.appendChild(img);
+      const homeBtn = document.getElementById("home-btn");
+      const hrect = homeBtn.getBoundingClientRect();
+      setTimeout(()=>{
+        img.style.transform = `translate(${hrect.left-rect.left+20}px, ${hrect.top-rect.top+8}px) scale(0.45)`;
+        img.style.opacity = 0.18;
+      },30);
+      setTimeout(()=>{
+        img.remove();
+        updateHomeCount(type, 1);
+      },2100);
     }
-  });
-}
-
-// --- Çilek Alanı Oyun Olayları ---
-strawberryArea.addEventListener('mousedown', (e) => {
-  if (!(isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) return;
-  isMouseDown = true;
-  strawberryHandledCoords.clear();
-  handleStrawberryActionAtMouse(e);
-});
-strawberryArea.addEventListener('mousemove', (e) => {
-  if (isMouseDown && (isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) {
-    handleStrawberryActionAtMouse(e);
-  }
-});
-document.addEventListener('mouseup', () => { isMouseDown = false; strawberryHandledCoords.clear(); });
-strawberryArea.addEventListener('mouseleave', () => { isMouseDown = false; strawberryHandledCoords.clear(); });
-strawberryArea.addEventListener('touchstart', (e) => {
-  if (!(isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) return;
-  e.preventDefault();
-  isMouseDown = true;
-  strawberryHandledCoords.clear();
-  handleStrawberryActionAtMouse(e);
-  setTimeout(() => strawberryHandledCoords.clear(), 80);
-});
-strawberryArea.addEventListener('touchend', (e) => {
-  if (!(isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) return;
-  handleStrawberryActionAtMouse(e);
-  isMouseDown = false;
-  strawberryHandledCoords.clear();
-});
-strawberryArea.addEventListener('touchmove', (e) => {
-  if (isMouseDown && (isStrawberryPickaxe || isStrawberryRemove || isStrawberry || isStrawberrySickle)) {
-    handleStrawberryActionAtMouse(e);
-  }
-});
-strawberryArea.addEventListener('touchcancel', () => { isMouseDown = false; strawberryHandledCoords.clear(); });
-
-function handleStrawberryActionAtMouse(e) {
-  let clientX, clientY;
-  if (e.touches && e.touches.length > 0) {
-    clientX = e.touches[0].clientX;
-    clientY = e.touches[0].clientY;
-  } else {
-    clientX = e.clientX; clientY = e.clientY;
-  }
-  const { x, y } = screenToIso(clientX, clientY);
-  const key = `${x},${y}`;
-  if (strawberryHandledCoords.has(key)) return;
-  strawberryHandledCoords.add(key);
-  const mousePos = {x: clientX, y: clientY};
-  if (isStrawberryPickaxe) addStrawberryPlot(x, y, mousePos);
-  if (isStrawberryRemove) removeStrawberryPlot(x, y, mousePos);
-  if (isStrawberry) addStrawberry(x, y, mousePos);
-  if (isStrawberrySickle) harvestStrawberry(x, y);
-}
-
-// --- Çilek Tarla Fonksiyonları ---
-function addStrawberryPlot(x, y, mousePos = null) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  if (strawberryPlots.find(p => p.x === x && p.y === y)) return false;
-  if (strawberryMoney < EKIM_MALIYET) return false;
-  strawberryPlots.push({x, y});
-  strawberryMoney -= EKIM_MALIYET;
-  updateStrawberryMoneyBar('lose');
-  redrawAllStrawberryPlots();
-  if (mousePos) {
-    const barRect = document.getElementById('strawberry-money-bar').getBoundingClientRect();
-    const from = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
-    animateMoneyFloat({ amount: -EKIM_MALIYET, from: from, to: mousePos });
-    soundPay.currentTime = 0; soundPay.play();
-  }
-  return true;
-}
-function addStrawberry(x, y, clickPos=null) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  if (!strawberryPlots.find(p => p.x === x && p.y === y)) return false;
-  if (strawberryPlants.find(w => w.x === x && w.y === y)) return false;
-  if (strawberry < 1) return false;
-  const barRect = document.getElementById('strawberry-bar').getBoundingClientRect();
-  const coords = isoToScreen(x, y);
-  const plotCenter = { x: coords.left, y: coords.top };
-  const barPos = { x: barRect.left + barRect.width / 2 - 16, y: barRect.top + barRect.height / 2 - 16 };
-  animateProductFly({ from: barPos, to: plotCenter, count: 1, imgSrc: "img/Strawberry.png" });
-  strawberry--;
-  updateStrawberryBar();
-  const now = Date.now();
-  let plantObj = { x, y, plantedAt: now, ready: false, timerInterval: null, harvested: false };
-  function updateTimer() {
-    const elapsed = Math.floor((Date.now() - plantObj.plantedAt) / 1000);
-    const remain = Math.max(0, 12 - elapsed);
-    if (plantObj.harvested) return;
-    if (remain <= 0) {
-      plantObj.ready = true;
-      clearInterval(plantObj.timerInterval);
-      redrawAllStrawberryPlots();
-    } else {
-      redrawAllStrawberryPlots();
+    function updateHomeCount(type, amount) {
+      inventory[type] += amount;
     }
-  }
-  updateTimer();
-  plantObj.timerInterval = setInterval(updateTimer, 400);
-  strawberryPlants.push(plantObj);
-  redrawAllStrawberryPlots();
-  return true;
-}
-function harvestStrawberry(x, y) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  const plantObj = strawberryPlants.find(w => w.x === x && w.y === y);
-  if (!plantObj || !plantObj.ready || plantObj.harvested) return false;
-  plantObj.harvested = true;
-  if (plantObj.timerInterval) clearInterval(plantObj.timerInterval);
-  const coords = isoToScreen(x, y);
-  const plotRect = { left: coords.left - 128, top: coords.top - 86, width: 256, height: 172 };
-  const barRect = document.getElementById('strawberry-bar').getBoundingClientRect();
-  const from = { x: plotRect.left + plotRect.width/2 - 48, y: plotRect.top + plotRect.height/2 - 48 };
-  const to = { x: barRect.left + barRect.width/2 - 48, y: barRect.top + barRect.height/2 - 48 };
-  animateProductFly({from, to, count: 6, imgSrc: "img/Strawberry.png"});
-  strawberryPlants = strawberryPlants.filter(w => !(w.x === x && w.y === y));
-  setTimeout(() => { strawberry += 6; updateStrawberryBar(); redrawAllStrawberryPlots(); }, 500);
-  redrawAllStrawberryPlots();
-  return true;
-}
-function removeStrawberryPlot(x, y, mousePos = null) {
-  if (x < GRID_MIN || x > GRID_MAX || y < GRID_MIN || y > GRID_MAX) return false;
-  const idx = strawberryPlots.findIndex(p => p.x === x && p.y === y);
-  if (idx !== -1) {
-    strawberryPlots.splice(idx, 1);
-    const plantIdx = strawberryPlants.findIndex(w => w.x === x && w.y === y);
-    if (plantIdx !== -1) {
-      const plantObj = strawberryPlants[plantIdx];
-      if (plantObj.timerInterval) clearInterval(plantObj.timerInterval);
-      strawberryPlants.splice(plantIdx, 1);
-    }
-    strawberryMoney += SILME_KAZANCI;
-    updateStrawberryMoneyBar('gain');
-    redrawAllStrawberryPlots();
-    if (mousePos) {
-      const barRect = document.getElementById('strawberry-money-bar').getBoundingClientRect();
-      const to = { x: barRect.left + barRect.width / 2 - 10, y: barRect.top + barRect.height / 2 - 14 };
-      animateMoneyFloat({ amount: SILME_KAZANCI, from: mousePos, to: to });
-      soundCoin.currentTime = 0; soundCoin.play();
-    }
-    return true;
-  }
-  return false;
-}
 
-// --- Çizim Çilek ---
-function redrawAllStrawberryPlots() {
-  document.querySelectorAll('.iso-plot').forEach(el => el.remove());
-  document.querySelectorAll('.iso-crop').forEach(el => el.remove());
-  let items = [];
-  strawberryPlots.forEach(plot => {items.push({type: 'plot', x: plot.x, y: plot.y});});
-  strawberryPlants.forEach(plant => {
-    if (plant.harvested) return;
-    items.push({type: 'plant', x: plant.x, y: plant.y, plant});
-  });
-  items.sort((a, b) => a.y - b.y || a.x - b.x);
-  items.forEach(item => {
-    const coords = isoToScreen(item.x, item.y);
-    if (item.type === 'plot') {
-      const img = document.createElement('img');
-      img.src = "img/Plot.webp";
-      img.className = "iso-plot";
-      img.style.left = coords.left + "px";
-      img.style.top = coords.top + "px";
-      img.style.zIndex = 10 + item.y;
-      strawberryArea.appendChild(img);
-    } else if (item.type === 'plant') {
-      let plantSrc;
-      const w = item.plant;
-      const elapsed = Math.floor((Date.now() - w.plantedAt) / 1000);
-      const remain = Math.max(0, 12 - elapsed);
-      if (remain > 6) plantSrc = "img/Plot1.webp";
-      else if (remain > 0) plantSrc = "img/PlotS2.webp";
-      else { plantSrc = "img/PlotS3.webp"; w.ready = true; }
-      const plantImg = document.createElement('img');
-      plantImg.src = plantSrc;
-      plantImg.className = "iso-crop";
-      plantImg.style.left = coords.left + "px";
-      plantImg.style.top = coords.top + "px";
-      plantImg.style.zIndex = 20 + item.y;
-      strawberryArea.appendChild(plantImg);
+    function flyMoney(amount, fromX, fromY, toBar=true) {
+      let n = Math.floor(Math.min(Math.max(Math.round(amount), 1), 20));
+      for(let i=0;i<n;i++) {
+        let dollar = document.createElement('div');
+        dollar.className = "money-fly";
+        dollar.innerHTML = "💵";
+        dollar.style.left = (fromX - 108) + "px";
+        dollar.style.top = (fromY - 108) + "px";
+        dollar.style.opacity = 1;
+        dollar.style.position = "fixed";
+        dollar.style.transform = "scale(1)";
+        if (n>1 && i===0) {
+          let txt = document.createElement('span');
+          txt.textContent = " +" + amount.toFixed(2);
+          txt.style.fontSize = "36px";
+          txt.style.fontWeight = "700";
+          txt.style.color = "#227d54";
+          txt.style.marginLeft = "10px";
+          txt.style.marginTop = "19px";
+          dollar.appendChild(txt);
+        }
+        document.body.appendChild(dollar);
+        const moneyBar = document.getElementById("money-bar");
+        const rectBar = moneyBar.getBoundingClientRect();
+        setTimeout(()=>{
+          let tx = rectBar.left + rectBar.width/2 - fromX + (Math.random()-0.5)*20;
+          let ty = rectBar.top + rectBar.height/2 - fromY + (Math.random()-0.5)*20;
+          dollar.style.transform = `translate(${tx}px, ${ty}px) scale(0.6)`;
+          dollar.style.opacity = 0.15;
+        },30+60*i);
+        setTimeout(()=>{dollar.remove();},2100+60*i);
+      }
     }
-  });
-}
 
-// --- Başlangıç ve ikon yüklemeleri ---
-document.getElementById('wheat-icon').src = "img/wheat.webp";
-document.getElementById('wheat-price-icon').src = "img/wheat.webp";
-document.getElementById('strawberry-icon').src = "img/Strawberry.png";
-document.getElementById('strawberry-price-icon').src = "img/Strawberry.png";
-updateWheatBar();
-updateWheatPriceBar();
-updateStrawberryBar();
-updateStrawberryPriceBar();
-showPage('wheat');
-updateGoStrawberryBtn();
-window.addEventListener('resize', checkOrientation);
-window.addEventListener('orientationchange', checkOrientation);
-</script>
+    // Satış modalı
+    document.getElementById("home-btn").onclick = function() {openHomeModal();};
+    function openHomeModal() {
+      document.getElementById("home-modal").style.display = "block";
+      updateSellPrices();
+      document.getElementById("wheat-count").textContent = inventory.wheat;
+      document.getElementById("strawberry-count").textContent = inventory.strawberry;
+      priceInterval = setInterval(updateSellPrices, 1000);
+    }
+    function closeHomeModal() {
+      document.getElementById("home-modal").style.display = "none";
+      if (priceInterval) { clearInterval(priceInterval); priceInterval = null; }
+    }
+    function updateSellPrices() {
+      sellPrices.wheat = (Math.random()*(SELL_MINMAX.wheat[1]-SELL_MINMAX.wheat[0]) + SELL_MINMAX.wheat[0]);
+      sellPrices.strawberry = (Math.random()*(SELL_MINMAX.strawberry[1]-SELL_MINMAX.strawberry[0]) + SELL_MINMAX.strawberry[0]);
+      document.getElementById("wheat-price").textContent = "$" + sellPrices.wheat.toFixed(2);
+      document.getElementById("strawberry-price").textContent = "$" + sellPrices.strawberry.toFixed(2);
+    }
+
+    function sellProduct(type) {
+      let count = inventory[type];
+      if (count <= 0) return;
+      let price = sellPrices[type];
+      let total = count * price;
+      let iconEl = document.querySelector(".sell-img img[src*='"+type+"']");
+      let iconRect = iconEl.getBoundingClientRect();
+      flyMoney(total, iconRect.left + iconRect.width/2, iconRect.top + iconRect.height/2, true);
+      money += total;
+      inventory[type] = 0;
+      updateMoneyBar();
+      document.getElementById(type+"-count").textContent = 0;
+    }
+
+    document.getElementById("remove-btn").onclick = function() {
+      for (let i=fields.length-1; i>=0; i--) {
+        let f = fields[i];
+        if (f.dried) {
+          let rect = f.div.getBoundingClientRect();
+          flyMoney(2, rect.left+FIELD_SIZE/2, rect.top+FIELD_SIZE/2, true);
+          money += 2;
+          updateMoneyBar();
+          if (f.timer) clearInterval(f.timer);
+          f.div.remove();
+          fields.splice(i,1);
+        }
+      }
+    };
+    document.getElementById("empty-btn").onclick = () => {alert("Bu buton henüz bir şey yapmıyor!");};
+    updateMoneyBar();
+  </script>
 </body>
 </html>
