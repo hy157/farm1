@@ -2,183 +2,433 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
+  <title>Modern Farm Game</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Çiftlik Oyunu</title>
   <style>
+    :root {
+      --main-green: #34af23;
+      --darker-green: #218c13;
+      --bar-bg: #fff;
+      --bar-border: #ccc;
+      --panel-bg: #f8fff6;
+      --panel-border: #9cbe9b;
+    }
     body {
       margin: 0;
-      padding: 0;
-      background: #aee57a;
-      font-family: 'Comic Sans MS', 'Arial', sans-serif;
-      user-select: none;
-    }
-    .top-bar {
-      width: 100vw;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background: #3498db;
-      color: #fff;
-      font-size: 22px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 10;
-    }
-    .game-area {
-      margin-top: 70px;
-      margin-bottom: 100px;
-      min-height: 75vh;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--main-green);
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      position: relative;
     }
-    .field {
-      display: grid;
-      grid-template-columns: repeat(3, 60px);
-      grid-gap: 8px;
-      background: #be7c36;
-      padding: 16px;
-      border-radius: 16px;
-      margin-bottom: 16px;
-    }
-    .wheat {
-      width: 60px;
-      height: 60px;
-      background: #f6e27a;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      cursor: pointer;
-      border: 3px solid #daa520;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
-      transition: background 0.3s;
-    }
-    .wheat:not(.grown) {
-      background: #ac8653;
-      border-color: #876136;
-      color: #fff;
-      cursor: default;
-    }
-    .menu-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100vw;
-      background: #fff;
+    #top-bar, #bottom-bar {
       display: flex;
       justify-content: space-around;
       align-items: center;
-      border-top: 2px solid #b2a97a;
-      padding: 10px 0;
-      z-index: 10;
-    }
-    .menu-btn {
-      background: #f3a543;
-      border-radius: 18px;
-      padding: 10px 20px;
+      background: var(--darker-green);
       color: #fff;
-      font-size: 18px;
-      border: none;
-      box-shadow: 0 2px 8px #0002;
-      margin: 0 4px;
+      font-size: 1.1em;
+      padding: 0.8em 0.2em;
+      min-height: 48px;
+    }
+    #top-bar span {
+      margin: 0 8px;
+      font-weight: 600;
+      background: var(--bar-bg);
+      color: #222;
+      padding: 0.3em 1em;
+      border-radius: 1em;
+      border: 1.5px solid var(--bar-border);
+      box-shadow: 0 1px 2px #0001;
+    }
+    #game-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 1em 0.4em 0.6em 0.4em;
+    }
+    #fields-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+      width: 100%;
+      max-width: 360px;
+      margin: 1em auto 0 auto;
+    }
+    .field {
+      width: 100%;
+      aspect-ratio: 6/1.5;
+      background: var(--panel-bg);
+      border: 2.5px solid var(--panel-border);
+      border-radius: 1.2em;
+      margin: 0 auto;
       display: flex;
       align-items: center;
-      gap: 5px;
+      justify-content: center;
+      font-size: 1.2em;
+      color: #222;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+      box-shadow: 0 2px 6px #0001;
+      position: relative;
+      overflow: hidden;
     }
-    .menu-btn:last-child {
-      background: #77b66b;
+    .field.locked {
+      filter: grayscale(0.8);
+      opacity: 0.65;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .field .progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #6fdb5f, #ffc107);
+      transition: width 0.3s;
+    }
+    .buildings-bar {
+      display: flex;
+      flex-direction: row;
+      gap: 0.5em;
+      margin: 0.5em 0;
+      justify-content: center;
+    }
+    .building {
+      background: #fffbe7;
+      border: 2px solid #f1cf76;
+      color: #764a01;
+      border-radius: 0.7em;
+      padding: 0.4em 1em;
+      min-width: 80px;
+      text-align: center;
+      font-size: 0.95em;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 7px #0002;
+      margin: 0 0.2em;
+    }
+    #bottom-bar button {
+      background: #fff;
+      border: none;
+      color: #218c13;
+      font-size: 1.1em;
+      padding: 0.6em 1.3em;
+      border-radius: 1em;
+      font-weight: 600;
+      margin: 0 0.4em;
+      box-shadow: 0 2px 4px #0001;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    #bottom-bar button:hover {
+      background: #e8fbd5;
+    }
+    /* Modals */
+    .modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 2.1em 1.2em 1.2em 1.2em;
+      border-radius: 1.4em;
+      box-shadow: 0 5px 40px #0005;
+      min-width: 270px;
+      max-width: 90vw;
+      z-index: 2000;
+      border: 2.5px solid #aad8a3;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      font-size: 1.1em;
+    }
+    .modal.active {
+      display: flex;
+      animation: popIn 0.2s;
+    }
+    @keyframes popIn { 0%{scale:0.8; opacity:0} 100%{scale:1; opacity:1} }
+    .modal h2 {
+      margin: 0 0 1em 0;
+      font-size: 1.25em;
+      color: #277214;
+    }
+    .modal button {
+      margin-top: 1em;
+      min-width: 100px;
+    }
+    .store-item {
+      margin: 0.5em 0;
+      background: #e3ffd1;
+      border: 1px solid #ceeab5;
+      border-radius: 0.7em;
+      padding: 0.7em 1.2em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .store-item button {
+      font-size: 0.99em;
+      padding: 0.2em 1em;
+      margin-left: 0.6em;
+    }
+    .close-btn {
+      background: #d1ffd5 !important;
+      color: #134f14 !important;
+      margin-top: 2em;
+    }
+    /* Responsive */
+    @media (max-width: 600px) {
+      #fields-grid { max-width: 99vw; }
+      .modal { min-width: 90vw; }
     }
   </style>
 </head>
 <body>
-  <div class="top-bar">
-    <span>🪙 <span id="coins">5120</span></span>
-    <span>⚡ <span id="energy">14</span>/20</span>
-    <span>💎 <span id="gems">25</span></span>
+  <div id="top-bar">
+    <span id="energy-bar">⚡ 100</span>
+    <span id="coin-bar">💰 100</span>
+    <span id="gem-bar">💎 100</span>
   </div>
-  <div class="game-area">
-    <div style="margin-bottom: 24px; text-align: center;">
-      <span style="font-size:48px;">🌾</span>
-      <span style="font-size:32px;">Çiftlik</span>
-    </div>
-    <div class="field" id="field">
-      <!-- Buğdaylar buraya JS ile gelecek -->
-    </div>
-    <div style="margin: 10px 0;">
-      <span style="font-size:28px;">🚜</span>
-      <span style="font-size:24px;">Küçük Traktör</span>
-    </div>
+
+  <div id="game-area">
+    <div class="buildings-bar" id="buildings-bar"></div>
+    <div id="fields-grid"></div>
   </div>
-  <div class="menu-bar">
-    <button class="menu-btn">🏠 Köyüm</button>
-    <button class="menu-btn">📜 Görevler</button>
-    <button class="menu-btn">🧳 Köy Haritası</button>
-    <button class="menu-btn">🛒 Dükkan</button>
+
+  <div id="bottom-bar">
+    <button onclick="openDepot()">📦 Depo</button>
+    <button onclick="openStore()">🏪 Mağaza</button>
+    <button onclick="openTasks()">📝 Görevler</button>
   </div>
+
+  <!-- Store Modal -->
+  <div class="modal" id="store-modal">
+    <h2>Mağaza</h2>
+    <div class="store-item">
+      🟫 <span>Tarla (10 coin)</span>
+      <button onclick="buyField()">Al</button>
+    </div>
+    <div class="store-item">
+      🏭 <span>Değirmen (30 coin)</span>
+      <button onclick="buyBuilding('mill')">Al</button>
+    </div>
+    <div class="store-item">
+      🚰 <span>Su Kuyusu (20 coin)</span>
+      <button onclick="buyBuilding('well')">Al</button>
+    </div>
+    <div class="store-item">
+      🔥 <span>Fırın (40 coin)</span>
+      <button onclick="buyBuilding('oven')">Al</button>
+    </div>
+    <button class="close-btn" onclick="closeModal('store-modal')">Kapat</button>
+  </div>
+  <!-- Depot Modal -->
+  <div class="modal" id="depot-modal">
+    <h2>Depo</h2>
+    <div id="depot-list">Depo boş.</div>
+    <button class="close-btn" onclick="closeModal('depot-modal')">Kapat</button>
+  </div>
+  <!-- Task Modal -->
+  <div class="modal" id="task-modal">
+    <h2>Görevler</h2>
+    <div>Görev sistemi çok yakında! 🛠️</div>
+    <button class="close-btn" onclick="closeModal('task-modal')">Kapat</button>
+  </div>
+  <!-- Plant Modal -->
+  <div class="modal" id="plant-modal">
+    <h2>Ürün Seç</h2>
+    <div id="plant-options"></div>
+    <button class="close-btn" onclick="closeModal('plant-modal')">Vazgeç</button>
+  </div>
+  <!-- Building Modal -->
+  <div class="modal" id="building-modal">
+    <h2 id="building-title">Üretim Binası</h2>
+    <div id="building-content">İçerik</div>
+    <button class="close-btn" onclick="closeModal('building-modal')">Kapat</button>
+  </div>
+
   <script>
-    // Temel değişkenler
-    let coins = 5120;
-    let energy = 14;
-    let gems = 25;
+    // ----------- GAME STATE ----------
+    let state = {
+      coins: 100,
+      energy: 100,
+      gems: 100,
+      fields: [{empty: true},{empty: true},{empty: true},{empty: true},{empty: true}],
+      depot: {},
+      buildings: [], // {type:'mill'|'well'|'oven'}
+      crops: [
+        {name: "Buğday", emoji:"🌾", time: 10, price: 5},
+        {name: "Mısır", emoji:"🌽", time: 25, price: 8},
+        {name: "Domates", emoji:"🍅", time: 45, price: 14},
+        {name: "Kabak", emoji:"🎃", time: 80, price: 20},
+        {name: "Çilek", emoji:"🍓", time: 120, price: 32}
+      ],
+      cropPlanting: null,
+      buildingsInfo: {
+        mill: {name:"Değirmen",emoji:"🏭"},
+        well: {name:"Su Kuyusu",emoji:"🚰"},
+        oven: {name:"Fırın",emoji:"🔥"},
+      }
+    };
 
-    // 6 tane buğday tarlası
-    let wheatFields = Array(6).fill({grown: false, timer: 0});
-
-    // Gelişme süreleri ve timerlar
-    function renderField() {
-      const fieldDiv = document.getElementById('field');
-      fieldDiv.innerHTML = '';
-      wheatFields.forEach((w, i) => {
-        let div = document.createElement('div');
-        div.className = 'wheat' + (w.grown ? ' grown' : '');
-        div.innerHTML = w.grown ? '🌾' : '🌱';
-        div.title = w.grown ? "Hasat et" : "Büyüyor...";
-        div.onclick = () => {
-          if(w.grown){
-            harvest(i);
-          }
+    // --------- UI UPDATERS -----------
+    function updateBars() {
+      document.getElementById('energy-bar').innerText = `⚡ ${state.energy}`;
+      document.getElementById('coin-bar').innerText = `💰 ${state.coins}`;
+      document.getElementById('gem-bar').innerText = `💎 ${state.gems}`;
+    }
+    function renderFields() {
+      const grid = document.getElementById('fields-grid');
+      grid.innerHTML = "";
+      state.fields.forEach((field, i) => {
+        const div = document.createElement('div');
+        div.className = "field";
+        if(field.locked) div.classList.add('locked');
+        if(field.empty) div.innerHTML = "Boş Tarla 🟫";
+        else if(field.growing) {
+          div.innerHTML = `<span>${field.crop.emoji} ${field.crop.name}<br><small>${field.crop.time-strTime(field.progress)} sn</small></span>`;
+          const prog = document.createElement('div');
+          prog.className = "progress";
+          prog.style.width = `${Math.max(3,field.progress/field.crop.time*100)}%`;
+          div.appendChild(prog);
         }
-        fieldDiv.appendChild(div);
+        else if(field.ready) {
+          div.innerHTML = `${field.crop.emoji} ${field.crop.name} ✅<br><button onclick="harvestField(${i})">Hasat Et</button>`;
+        }
+        div.onclick = () => { if(field.empty) openPlantModal(i); };
+        grid.appendChild(div);
       });
     }
-
-    function harvest(index) {
-      // Hasat ettiğinde
-      coins += 10; // örnek: 10 altın
-      energy = Math.max(0, energy - 1); // 1 enerji harca
-      wheatFields[index] = {grown: false, timer: 0};
-      updateBar();
-      renderField();
+    function renderBuildings() {
+      const bar = document.getElementById('buildings-bar');
+      bar.innerHTML = "";
+      state.buildings.forEach((b, idx) => {
+        const d = document.createElement('div');
+        d.className = "building";
+        d.innerHTML = `${state.buildingsInfo[b.type].emoji} <span>${state.buildingsInfo[b.type].name}</span>`;
+        d.onclick = () => openBuildingModal(b.type, idx);
+        bar.appendChild(d);
+      });
+    }
+    function updateDepot() {
+      const list = document.getElementById('depot-list');
+      if(Object.keys(state.depot).length==0) list.innerHTML = "Depo boş.";
+      else {
+        list.innerHTML = "";
+        Object.entries(state.depot).forEach(([crop,amount])=>{
+          list.innerHTML += `<div>${crop} x${amount} <button onclick="sellCrop('${crop}')">Sat</button></div>`;
+        });
+      }
     }
 
-    function updateBar() {
-      document.getElementById('coins').textContent = coins;
-      document.getElementById('energy').textContent = energy;
-      document.getElementById('gems').textContent = gems;
+    // -------- MODALS -----------
+    function openStore() { openModal('store-modal'); }
+    function openDepot() { updateDepot(); openModal('depot-modal'); }
+    function openTasks() { openModal('task-modal'); }
+    function openPlantModal(fieldIdx) {
+      state.cropPlanting = fieldIdx;
+      const options = document.getElementById('plant-options');
+      options.innerHTML = "";
+      state.crops.forEach((crop, i)=>{
+        options.innerHTML += `<button onclick="plantCrop(${i})">${crop.emoji} ${crop.name}<br><small>${crop.time} sn / ${crop.price} coin</small></button>`;
+      });
+      openModal('plant-modal');
+    }
+    function openBuildingModal(type, idx) {
+      document.getElementById('building-title').innerText = state.buildingsInfo[type].name + " " + state.buildingsInfo[type].emoji;
+      let content = '';
+      if(type=='mill') content = "Burada ürünlerden un üretebilirsin. (Demo)";
+      if(type=='well') content = "Tarlanı ücretsiz sulayabilirsin. (Demo)";
+      if(type=='oven') content = "Un ve ürünlerden ekmek üretebilirsin. (Demo)";
+      document.getElementById('building-content').innerHTML = content;
+      openModal('building-modal');
+    }
+    function openModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
     }
 
-    // Her saniye kontrol et
-    setInterval(() => {
-      for(let i=0; i<wheatFields.length; i++) {
-        if(!wheatFields[i].grown){
-          wheatFields[i].timer += 1;
-          if(wheatFields[i].timer >= 10){
-            wheatFields[i].grown = true;
-            wheatFields[i].timer = 10;
+    // ----------- GAME LOGIC -----------
+    function buyField() {
+      // Tarla satın al
+      let idx = state.fields.findIndex(f=>f.locked);
+      if(idx<0) idx = state.fields.findIndex(f=>f.empty);
+      if(idx < 0) return alert("Tüm tarlalar zaten açık!");
+      if(state.coins < 10) return alert("Yeterli coin yok!");
+      state.coins -= 10;
+      state.fields[idx] = {empty: true};
+      renderFields(); updateBars();
+    }
+    function buyBuilding(type) {
+      let price = type=='mill'?30:type=='well'?20:40;
+      if(state.coins < price) return alert("Yeterli coin yok!");
+      state.coins -= price;
+      state.buildings.push({type});
+      renderBuildings(); updateBars();
+    }
+    function plantCrop(cropIdx) {
+      closeModal('plant-modal');
+      let fidx = state.cropPlanting;
+      if(state.energy < 10) return alert("Yeterli enerji yok!");
+      let field = state.fields[fidx];
+      if(!field.empty) return;
+      let crop = {...state.crops[cropIdx]};
+      state.energy -= 10;
+      if(state.gems > 0) {
+        state.gems -= 1;
+        state.fields[fidx] = {growing:false, ready:true, crop};
+        renderFields(); updateBars();
+        return;
+      }
+      state.fields[fidx] = {empty:false, growing:true, progress:0, crop};
+      renderFields(); updateBars();
+    }
+    function harvestField(idx) {
+      let field = state.fields[idx];
+      let c = field.crop.name;
+      state.depot[c] = (state.depot[c]||0) + 1;
+      state.fields[idx] = {empty:true};
+      renderFields(); updateDepot(); updateBars();
+    }
+    function sellCrop(crop) {
+      if(state.depot[crop]>0) {
+        let price = state.crops.find(c=>c.name==crop).price;
+        state.coins += price;
+        state.depot[crop] -= 1;
+        if(state.depot[crop]==0) delete state.depot[crop];
+        updateDepot(); updateBars();
+      }
+    }
+    // Timer
+    setInterval(()=>{
+      state.fields.forEach((field,i)=>{
+        if(field.growing) {
+          field.progress = (field.progress||0)+1;
+          if(field.progress >= field.crop.time) {
+            field.growing = false; field.ready = true;
           }
         }
-      }
-      renderField();
+      });
+      renderFields();
     }, 1000);
-
-    renderField();
-    updateBar();
+    function strTime(sec) {
+      return Math.max(0, sec);
+    }
+    // --------- INIT -----------
+    function init() {
+      // 5 tarladan fazlasını açmak için locked ekleyebilirsin
+      while(state.fields.length < 5) state.fields.push({locked:true});
+      renderFields();
+      renderBuildings();
+      updateBars();
+    }
+    init();
   </script>
 </body>
 </html>
